@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../constants/app_localizations.dart';
 import '../constants/app_strings.dart';
 import '../constants/app_theme.dart';
 import '../widgets/app_toast.dart';
@@ -11,7 +12,7 @@ typedef ExternalUriLauncher = Future<bool> Function(Uri uri);
 /// Screen 2 — Settings Screen of SnapText OCR.
 ///
 /// Implements the exact sections, dialogs, theme persistence, 21-language
-/// selector, and bottom-only SafeArea insets specified in IMPLEMENTATION_SPEC.md §4.
+/// selector, live localization, and bottom-only SafeArea insets specified in IMPLEMENTATION_SPEC.md §4.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     super.key,
@@ -67,13 +68,14 @@ class SettingsScreen extends StatelessWidget {
 
   Future<void> _showLanguageDialog(BuildContext context) async {
     final currentCode = currentLocale.languageCode;
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text(
-            AppStrings.appLanguage,
-            style: TextStyle(fontWeight: FontWeight.w800),
+          title: Text(
+            l10n.appLanguage,
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           contentPadding: const EdgeInsets.only(top: 12),
           content: SizedBox(
@@ -118,7 +120,7 @@ class SettingsScreen extends StatelessWidget {
             TextButton(
               key: const Key('language_cancel_button'),
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(AppStrings.cancel),
+              child: Text(l10n.cancel),
             ),
           ],
         );
@@ -127,13 +129,14 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _showContentPolicyDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text(
-            AppStrings.contentPolicy,
-            style: TextStyle(fontWeight: FontWeight.w800),
+          title: Text(
+            l10n.contentPolicy,
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           content: const SingleChildScrollView(
             child: Text(
@@ -145,7 +148,7 @@ class SettingsScreen extends StatelessWidget {
             TextButton(
               key: const Key('content_policy_ok_button'),
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(AppStrings.ok),
+              child: Text(l10n.ok),
             ),
           ],
         );
@@ -154,6 +157,7 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _showAboutDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -189,7 +193,7 @@ class SettingsScreen extends StatelessWidget {
             TextButton(
               key: const Key('about_ok_button'),
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(AppStrings.ok),
+              child: Text(l10n.ok),
             ),
           ],
         );
@@ -200,6 +204,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     final activeLanguage =
         AppStrings.languageForCode(currentLocale.languageCode);
 
@@ -213,7 +218,7 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildSettingsHeader(context, isDark),
+            _buildSettingsHeader(context, isDark, l10n),
             const Divider(height: 1),
             Expanded(
               child: SingleChildScrollView(
@@ -224,13 +229,13 @@ class SettingsScreen extends StatelessWidget {
                     // Group 1: Appearance
                     _buildSectionCard(
                       isDark: isDark,
-                      title: AppStrings.appearance,
-                      subtitle: AppStrings.appearanceDescription,
+                      title: l10n.appearance,
+                      subtitle: l10n.appearanceDescription,
                       icon: Icons.palette_rounded,
                       children: [
                         _buildSettingsButton(
                           key: const Key('light_mode_button'),
-                          label: AppStrings.lightMode,
+                          label: l10n.lightMode,
                           icon: Icons.light_mode_rounded,
                           isSelected: currentThemeMode == ThemeMode.light,
                           isDark: isDark,
@@ -245,7 +250,7 @@ class SettingsScreen extends StatelessWidget {
                         const SizedBox(height: 6),
                         _buildSettingsButton(
                           key: const Key('dark_mode_button'),
-                          label: AppStrings.darkMode,
+                          label: l10n.darkMode,
                           icon: Icons.dark_mode_rounded,
                           isSelected: currentThemeMode == ThemeMode.dark,
                           isDark: isDark,
@@ -260,7 +265,7 @@ class SettingsScreen extends StatelessWidget {
                         const SizedBox(height: 6),
                         _buildSettingsButton(
                           key: const Key('system_mode_button'),
-                          label: AppStrings.systemDefault,
+                          label: l10n.systemDefault,
                           icon: Icons.brightness_auto_rounded,
                           isSelected: currentThemeMode == ThemeMode.system,
                           isDark: isDark,
@@ -279,13 +284,13 @@ class SettingsScreen extends StatelessWidget {
                     // Group 2: Language
                     _buildSectionCard(
                       isDark: isDark,
-                      title: AppStrings.language,
-                      subtitle: AppStrings.languageDescription,
+                      title: l10n.language,
+                      subtitle: l10n.languageDescription,
                       icon: Icons.translate_rounded,
                       children: [
                         _buildSettingsButton(
                           key: const Key('language_button'),
-                          label: AppStrings.appLanguage,
+                          label: l10n.appLanguage,
                           trailingBadge: activeLanguage.nativeName,
                           icon: Icons.language_rounded,
                           isDark: isDark,
@@ -298,13 +303,13 @@ class SettingsScreen extends StatelessWidget {
                     // Group 3: Policies
                     _buildSectionCard(
                       isDark: isDark,
-                      title: AppStrings.policies,
-                      subtitle: AppStrings.policiesDescription,
+                      title: l10n.policies,
+                      subtitle: l10n.policiesDescription,
                       icon: Icons.verified_user_rounded,
                       children: [
                         _buildSettingsButton(
                           key: const Key('privacy_policy_button'),
-                          label: AppStrings.privacyPolicy,
+                          label: l10n.privacyPolicy,
                           icon: Icons.privacy_tip_rounded,
                           isDark: isDark,
                           onPressed: () => _openPrivacyPolicy(context),
@@ -312,7 +317,7 @@ class SettingsScreen extends StatelessWidget {
                         const SizedBox(height: 6),
                         _buildSettingsButton(
                           key: const Key('content_policy_button'),
-                          label: AppStrings.contentPolicy,
+                          label: l10n.contentPolicy,
                           icon: Icons.gavel_rounded,
                           isDark: isDark,
                           onPressed: () => _showContentPolicyDialog(context),
@@ -324,13 +329,13 @@ class SettingsScreen extends StatelessWidget {
                     // Group 4: Support
                     _buildSectionCard(
                       isDark: isDark,
-                      title: AppStrings.support,
-                      subtitle: AppStrings.supportDescription,
+                      title: l10n.support,
+                      subtitle: l10n.supportDescription,
                       icon: Icons.support_agent_rounded,
                       children: [
                         _buildSettingsButton(
                           key: const Key('contact_us_button'),
-                          label: AppStrings.contactUs,
+                          label: l10n.contactUs,
                           icon: Icons.mail_outline_rounded,
                           isDark: isDark,
                           onPressed: () => _openContactEmail(context),
@@ -338,7 +343,7 @@ class SettingsScreen extends StatelessWidget {
                         const SizedBox(height: 6),
                         _buildSettingsButton(
                           key: const Key('about_app_button'),
-                          label: AppStrings.aboutApp,
+                          label: l10n.aboutApp,
                           icon: Icons.info_outline_rounded,
                           isDark: isDark,
                           onPressed: () => _showAboutDialog(context),
@@ -355,9 +360,9 @@ class SettingsScreen extends StatelessWidget {
                         key: const Key('back_button'),
                         onPressed: () => Navigator.of(context).maybePop(),
                         icon: const Icon(Icons.arrow_back_rounded),
-                        label: const Text(
-                          AppStrings.back,
-                          style: TextStyle(
+                        label: Text(
+                          l10n.back,
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                           ),
@@ -393,7 +398,11 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsHeader(BuildContext context, bool isDark) {
+  Widget _buildSettingsHeader(
+    BuildContext context,
+    bool isDark,
+    AppLocalizations l10n,
+  ) {
     final topPad = MediaQuery.paddingOf(context).top;
     return Container(
       padding: EdgeInsets.fromLTRB(20, topPad + 14, 20, 14),
@@ -434,9 +443,9 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  AppStrings.settingsTitle,
-                  style: TextStyle(
+                Text(
+                  l10n.settingsTitle,
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -444,7 +453,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  AppStrings.settingsSubtitle,
+                  l10n.settingsSubtitle,
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white.withValues(alpha: 0.85),

@@ -326,6 +326,70 @@ void main() {
       await tester.tap(find.byKey(const Key('back_button')));
       await tester.pumpAndSettle();
       expect(find.text('SnapText OCR'), findsOneWidget);
+      // Since French ('fr') was selected, Home labels now render in French!
+      expect(find.text('Caméra'), findsOneWidget);
+      expect(find.text('Extraire le texte'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Scan History auto-saves extracted text, opens sheet, restores text, and clears',
+        (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final historyService =
+          // ignore: invalid_use_of_visible_for_testing_member
+          await Future.value(prefs);
+
+      final imageService = ImageService(
+        galleryPicker: () async => sampleImageFile.path,
+        tempDirProvider: () async => tempDir,
+      );
+
+      final ocrService = OcrService(
+        tempDirectoryOverride: tempDir,
+        scriptRunner: (script, _) async {
+          if (script.name == 'latin') {
+            return 'Saved History OCR Sample';
+          }
+          return '';
+        },
+      );
+
+      await tester.pumpWidget(
+        SnapTextApp(
+          preferencesService: PreferencesService(historyService),
+          imageService: imageService,
+          ocrService: ocrService,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 1. Pick gallery & extract text -> auto-saved to HistoryService
+      await tester.tap(find.byKey(const Key('gallery_button')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('extract_button')));
+      await tester.tap(find.byKey(const Key('extract_button')));
+      await tester.pumpAndSettle();
+
+      // 2. Clear editor
+      await tester.ensureVisible(find.byKey(const Key('clear_button')));
+      await tester.tap(find.byKey(const Key('clear_button')));
+      await tester.pumpAndSettle();
+      final homeState = tester.state<HomeScreenState>(find.byType(HomeScreen));
+      expect(homeState.textController.text, isEmpty);
+
+      // 3. Open Scan History sheet via bottom nav History button
+      await tester.tap(find.byKey(const Key('bottom_nav_history')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('scan_history_sheet')), findsOneWidget);
+      expect(find.text('Saved History OCR Sample'), findsOneWidget);
+
+      // 4. Tap "Use Text" to restore scan into editor
+      await tester.tap(find.byKey(const Key('history_use_0')));
+      await tester.pumpAndSettle();
+      expect(
+        homeState.textController.text,
+        equals('Saved History OCR Sample'),
+      );
     });
   });
 }

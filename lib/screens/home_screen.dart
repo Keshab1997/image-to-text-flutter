@@ -4,13 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../constants/app_localizations.dart';
 import '../constants/app_strings.dart';
 import '../constants/app_theme.dart';
+import '../services/history_service.dart';
 import '../services/image_service.dart';
 import '../services/ocr_service.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/primary_button.dart';
+import 'history_sheet.dart';
 
 typedef ShareTextCallback = Future<void> Function(String text, {String? subject});
 typedef ClipboardCopyCallback = Future<void> Function(String text, {String label});
@@ -18,13 +21,15 @@ typedef ClipboardCopyCallback = Future<void> Function(String text, {String label
 /// Screen 1 — Home Screen of SnapText OCR.
 ///
 /// Implements the complete functional contract from docs/IMPLEMENTATION_SPEC.md §2
-/// styled with Keshab's selected 3D Robot-Scholar Mascot UI redesign.
+/// styled with Keshab's selected 3D Robot-Scholar Mascot UI redesign,
+/// live 21-language localization, and local Scan History.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.onOpenSettings,
     this.imageService,
     this.ocrService,
+    this.historyService,
     this.shareHandler,
     this.clipboardHandler,
     this.initialImageState = ImageSelectionState.none,
@@ -35,6 +40,7 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback onOpenSettings;
   final ImageService? imageService;
   final OcrService? ocrService;
+  final HistoryService? historyService;
   final ShareTextCallback? shareHandler;
   final ClipboardCopyCallback? clipboardHandler;
   final ImageSelectionState initialImageState;
@@ -48,6 +54,8 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   late final ImageService _imageService = widget.imageService ?? ImageService();
   late final OcrService _ocrService = widget.ocrService ?? OcrService();
+  late final HistoryService _historyService =
+      widget.historyService ?? HistoryService();
   late final TextEditingController _textController = TextEditingController();
   late final ScrollController _outerScrollController = ScrollController();
   late final ScrollController _textScrollController = ScrollController();
@@ -210,6 +218,12 @@ class HomeScreenState extends State<HomeScreen> {
           text: bestText,
           selection: TextSelection.collapsed(offset: bestText.length),
         );
+        await _historyService.addEntry(
+          text: bestText,
+          source: _imageState == ImageSelectionState.bitmap ? 'cropped' : 'uri',
+          score: calculateOcrScore(bestText),
+        );
+        if (!mounted) return;
         AppToast.showShort(context, AppStrings.toastTextExtracted);
       }
     } catch (e) {
@@ -222,13 +236,7 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _handleCopy() async {
-    final text = _textController.text;
-    if (text.trim().isEmpty) {
-      AppToast.showShort(context, AppStrings.toastCopyEmpty);
-      return;
-    }
-
+  Future<void> _copyTextValue(String text) async {
     final handler = widget.clipboardHandler;
     if (handler != null) {
       await handler(text, label: AppStrings.clipboardLabel);
@@ -237,6 +245,15 @@ class HomeScreenState extends State<HomeScreen> {
     }
     if (!mounted) return;
     AppToast.showShort(context, AppStrings.toastTextCopied);
+  }
+
+  Future<void> _handleCopy() async {
+    final text = _textController.text;
+    if (text.trim().isEmpty) {
+      AppToast.showShort(context, AppStrings.toastCopyEmpty);
+      return;
+    }
+    await _copyTextValue(text);
   }
 
   Future<void> _handleShare() async {
@@ -268,15 +285,37 @@ class HomeScreenState extends State<HomeScreen> {
     AppToast.showShort(context, AppStrings.toastCleared);
   }
 
+  Future<void> _openHistorySheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ScanHistorySheet(
+        historyService: _historyService,
+        onSelectText: (restoredText) {
+          setState(() {
+            _textController.value = TextEditingValue(
+              text: restoredText,
+              selection: TextSelection.collapsed(offset: restoredText.length),
+            );
+          });
+          AppToast.showShort(context, AppStrings.toastTextExtracted);
+        },
+        onCopyText: _copyTextValue,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(context, isDark),
+            _buildHeader(context, isDark, l10n),
             Expanded(
               child: SingleChildScrollView(
                 controller: _outerScrollController,
@@ -287,7 +326,7 @@ class HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildHeroImageCard(context, isDark),
+                    _buildHeroImageCard(context, isDark, l10n),
                     const SizedBox(height: 14),
                     // Row 1: Camera & Gallery equal-width bento buttons (6dp+ gap)
                     Row(
@@ -295,8 +334,8 @@ class HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: BentoActionTile(
                             key: const Key('camera_button'),
-                            title: AppStrings.camera,
-                            subtitle: AppStrings.cameraSub,
+                            title: l10n.camera,
+                            subtitle: l10n.cameraSub,
                             icon: Icons.camera_alt_rounded,
                             gradientColors: const [
                               AppTheme.cameraOrangeStart,
@@ -309,8 +348,8 @@ class HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: BentoActionTile(
                             key: const Key('gallery_button'),
-                            title: AppStrings.gallery,
-                            subtitle: AppStrings.gallerySub,
+                            title: l10n.gallery,
+                            subtitle: l10n.gallerySub,
                             icon: Icons.photo_library_rounded,
                             gradientColors: const [
                               AppTheme.galleryTealStart,
@@ -328,7 +367,7 @@ class HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: SmartPillButton(
                             key: const Key('crop_button'),
-                            label: AppStrings.crop,
+                            label: l10n.crop,
                             icon: Icons.crop_rounded,
                             backgroundColor: isDark
                                 ? const Color(0xFF281C54)
@@ -347,7 +386,7 @@ class HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: SmartPillButton(
                             key: const Key('extract_button'),
-                            label: AppStrings.extractText,
+                            label: l10n.extractText,
                             trailingIcon: Icons.auto_fix_high_rounded,
                             gradientColors: const [
                               AppTheme.royalViolet,
@@ -387,11 +426,12 @@ class HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                     const SizedBox(height: 16),
-                    _buildExtractedTextStudioCard(context, isDark),
+                    _buildExtractedTextStudioCard(context, isDark, l10n),
                   ],
                 ),
               ),
             ),
+            _buildMockupBottomNavBar(isDark, l10n),
             const BannerAdSlot(),
           ],
         ),
@@ -400,7 +440,11 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   /// Header — padding 20dp horizontal, 12dp vertical (Spec §2.1 + v2 Mockup).
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(
+    BuildContext context,
+    bool isDark,
+    AppLocalizations l10n,
+  ) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -467,7 +511,7 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  AppStrings.mainSubtitle,
+                  l10n.mainSubtitle,
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
@@ -479,9 +523,9 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           // Right: circular icon button 56x56dp, blue #1976d2, stroke #64b5f6, white settings icon 30dp
           Tooltip(
-            message: AppStrings.settings,
+            message: l10n.settings,
             child: Semantics(
-              label: AppStrings.settings,
+              label: l10n.settings,
               button: true,
               child: SizedBox(
                 width: AppTheme.settingsFabSize,
@@ -517,7 +561,11 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   /// Image Card: 300dp tall, radius 20dp, elevation 2dp (Spec §2.1 + v2 Mockup).
-  Widget _buildHeroImageCard(BuildContext context, bool isDark) {
+  Widget _buildHeroImageCard(
+    BuildContext context,
+    bool isDark,
+    AppLocalizations l10n,
+  ) {
     final hasImage = _imageState != ImageSelectionState.none;
 
     return Card(
@@ -533,12 +581,12 @@ class HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         child: hasImage
             ? _buildSelectedImagePreview(isDark)
-            : _buildMascotEmptyState(),
+            : _buildMascotEmptyState(l10n),
       ),
     );
   }
 
-  Widget _buildMascotEmptyState() {
+  Widget _buildMascotEmptyState(AppLocalizations l10n) {
     return Stack(
       key: const Key('empty_image_state'),
       fit: StackFit.expand,
@@ -568,69 +616,76 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Gallery icon 64dp at 55% opacity (Spec §2.1)
-              Opacity(
-                opacity: 0.55,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Gallery icon 64dp at 55% opacity (Spec §2.1)
+                Opacity(
+                  opacity: 0.55,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.photo_library_outlined,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  l10n.noImageSelected,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 230),
+                  child: Text(
+                    l10n.chooseImageHint,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.3,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF80D8FF).withValues(alpha: 0.5),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.photo_library_outlined,
-                    size: 64,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                AppStrings.noImageSelected,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 6),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
-                child: Text(
-                  AppStrings.chooseImageHint,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.35,
-                    color: Colors.white.withValues(alpha: 0.85),
+                  child: Text(
+                    l10n.heroDropPrompt,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF7C4DFF).withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF80D8FF).withValues(alpha: 0.5),
-                  ),
-                ),
-                child: const Text(
-                  AppStrings.heroDropPrompt,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -714,12 +769,12 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Extracted Text studio container matching Spec §2.1 + v2 Mockup:
-  /// - Heading "Extracted Text" 20sp bold
-  /// - 260dp tall editable, scrollable TextField card (radius 16dp) with always-visible scrollbar
-  /// - Copy, Share, and Clear buttons
-  /// - Centered copyright footer "© 2026 Keshab Studios" (15sp bold)
-  Widget _buildExtractedTextStudioCard(BuildContext context, bool isDark) {
+  /// Extracted Text studio container matching Spec §2.1 + v2 Mockup.
+  Widget _buildExtractedTextStudioCard(
+    BuildContext context,
+    bool isDark,
+    AppLocalizations l10n,
+  ) {
     final studioBg = isDark ? const Color(0xFF1B123E) : Colors.white;
     final innerFieldBg =
         isDark ? const Color(0xFF120B2B) : const Color(0xFFF7F4FD);
@@ -746,14 +801,15 @@ class HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                AppStrings.extractedText,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF1A103D),
+              Expanded(
+                child: Text(
+                  l10n.extractedText,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1A103D),
+                  ),
                 ),
               ),
               ValueListenableBuilder<TextEditingValue>(
@@ -779,6 +835,18 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
+              ),
+              const SizedBox(width: 6),
+              // `...` History button in top-right of Extracted Text card (matching v2 mockup)
+              IconButton(
+                key: const Key('studio_history_button'),
+                tooltip: l10n.scanHistory,
+                visualDensity: VisualDensity.compact,
+                onPressed: _openHistorySheet,
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  color: isDark ? Colors.white70 : const Color(0xFF42366E),
+                ),
               ),
             ],
           ),
@@ -836,7 +904,7 @@ class HomeScreenState extends State<HomeScreen> {
                       color: isDark ? Colors.white : const Color(0xFF1C1338),
                     ),
                     decoration: InputDecoration(
-                      hintText: AppStrings.extractedTextHint,
+                      hintText: l10n.extractedTextHint,
                       hintStyle: TextStyle(
                         fontSize: 16,
                         color: isDark ? Colors.white38 : Colors.black38,
@@ -856,7 +924,7 @@ class HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: SmartPillButton(
                   key: const Key('copy_button'),
-                  label: AppStrings.copy,
+                  label: l10n.copy,
                   icon: Icons.copy_rounded,
                   gradientColors: const [
                     AppTheme.copyPurpleStart,
@@ -869,7 +937,7 @@ class HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: SmartPillButton(
                   key: const Key('share_button'),
-                  label: AppStrings.share,
+                  label: l10n.share,
                   icon: Icons.share_rounded,
                   gradientColors: const [
                     AppTheme.shareTealStart,
@@ -889,9 +957,9 @@ class HomeScreenState extends State<HomeScreen> {
               key: const Key('clear_button'),
               onPressed: _handleClear,
               icon: const Icon(Icons.delete_sweep_rounded, size: 20),
-              label: const Text(
-                AppStrings.clear,
-                style: TextStyle(
+              label: Text(
+                l10n.clear,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                 ),
@@ -917,6 +985,64 @@ class HomeScreenState extends State<HomeScreen> {
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: isDark ? Colors.white70 : const Color(0xFF42366E),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bottom navigation bar matching the selected v2 UI design mockup
+  /// (Home / History / Settings).
+  Widget _buildMockupBottomNavBar(bool isDark, AppLocalizations l10n) {
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? const [Color(0xFF1F1147), Color(0xFF34186B)]
+              : const [Color(0xFF311B92), Color(0xFF512DA8)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            key: const Key('bottom_nav_home'),
+            tooltip: l10n.homeTab,
+            onPressed: () {
+              _outerScrollController.animateTo(
+                0,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(
+              Icons.home_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          IconButton(
+            key: const Key('bottom_nav_history'),
+            tooltip: l10n.scanHistory,
+            onPressed: _openHistorySheet,
+            icon: Icon(
+              Icons.history_rounded,
+              color: Colors.white.withValues(alpha: 0.85),
+              size: 24,
+            ),
+          ),
+          IconButton(
+            key: const Key('bottom_nav_settings'),
+            tooltip: l10n.settings,
+            onPressed: widget.onOpenSettings,
+            icon: Icon(
+              Icons.person_outline_rounded,
+              color: Colors.white.withValues(alpha: 0.85),
+              size: 24,
             ),
           ),
         ],

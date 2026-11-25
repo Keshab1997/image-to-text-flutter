@@ -6,6 +6,7 @@ import 'constants/app_strings.dart';
 import 'constants/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'services/history_service.dart';
 import 'services/image_service.dart';
 import 'services/ocr_service.dart';
 import 'services/preferences_service.dart';
@@ -57,6 +58,7 @@ class SnapTextApp extends StatefulWidget {
     this.preferencesService,
     this.imageService,
     this.ocrService,
+    this.historyService,
     this.shareHandler,
     this.clipboardHandler,
     this.uriLauncher,
@@ -67,6 +69,7 @@ class SnapTextApp extends StatefulWidget {
   final PreferencesService? preferencesService;
   final ImageService? imageService;
   final OcrService? ocrService;
+  final HistoryService? historyService;
   final ShareTextCallback? shareHandler;
   final ClipboardCopyCallback? clipboardHandler;
   final ExternalUriLauncher? uriLauncher;
@@ -130,6 +133,7 @@ class SnapTextAppState extends State<SnapTextApp> {
           return HomeScreen(
             imageService: widget.imageService,
             ocrService: widget.ocrService,
+            historyService: widget.historyService,
             shareHandler: widget.shareHandler,
             clipboardHandler: widget.clipboardHandler,
             onOpenSettings: () {
