@@ -450,5 +450,74 @@ void main() {
         equals('Saved History OCR Sample'),
       );
     });
+
+    testWidgets(
+        'Smart Entity chips, Batch Multi-Page Scan, and History Search work',
+        (tester) async {
+      String? copiedValue;
+      final page2File = File('${tempDir.path}/page2.png');
+      page2File.writeAsBytesSync(_kTransparentPng, flush: true);
+
+      final imageService = ImageService(
+        multiGalleryPicker: () async =>
+            <String>[sampleImageFile.path, page2File.path],
+        tempDirProvider: () async => tempDir,
+      );
+
+      var callIndex = 0;
+      final ocrService = OcrService(
+        tempDirectoryOverride: tempDir,
+        scriptRunner: (script, _) async {
+          if (script.name == 'latin') {
+            callIndex++;
+            return callIndex == 1
+                ? 'Contact: support@keshab.dev'
+                : 'Total: ₹1250.00';
+          }
+          return '';
+        },
+      );
+
+      await tester.pumpWidget(
+        SnapTextApp(
+          imageService: imageService,
+          ocrService: ocrService,
+          clipboardHandler: (text, {label = ''}) async {
+            copiedValue = text;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 1. Trigger Multi-Page Batch Scan
+      await tester.ensureVisible(find.byKey(const Key('batch_scan_button')));
+      await tester.tap(find.byKey(const Key('batch_scan_button')));
+      await tester.pumpAndSettle();
+
+      final homeState = tester.state<HomeScreenState>(find.byType(HomeScreen));
+      expect(homeState.textController.text, contains('--- Page 1 ---'));
+      expect(homeState.textController.text, contains('--- Page 2 ---'));
+
+      // 2. Smart Entity Chips are automatically rendered for email and amount
+      final emailChip = find.byKey(
+        const Key('entity_chip_support@keshab.dev'),
+      );
+      expect(emailChip, findsOneWidget);
+      await tester.ensureVisible(emailChip);
+      await tester.tap(emailChip);
+      await tester.pumpAndSettle();
+      expect(copiedValue, equals('support@keshab.dev'));
+
+      // 3. Open History sheet and filter via Search Bar
+      await tester.tap(find.byKey(const Key('bottom_nav_history')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('history_search_field')), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('history_search_field')),
+        'non_existent_query_xyz',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('history_item_0')), findsNothing);
+    });
   });
 }

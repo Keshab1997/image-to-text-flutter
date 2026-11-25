@@ -4,7 +4,8 @@ import '../constants/app_localizations.dart';
 import '../constants/app_theme.dart';
 import '../services/history_service.dart';
 
-/// Bottom sheet displaying saved local OCR scans with one-tap restore, copy, and delete.
+/// Bottom sheet displaying saved local OCR scans with live keyword search,
+/// one-tap restore, copy, and delete.
 class ScanHistorySheet extends StatefulWidget {
   const ScanHistorySheet({
     super.key,
@@ -22,13 +23,21 @@ class ScanHistorySheet extends StatefulWidget {
 }
 
 class _ScanHistorySheetState extends State<ScanHistorySheet> {
+  final TextEditingController _searchController = TextEditingController();
   List<ScanHistoryItem> _items = const <ScanHistoryItem>[];
+  String _searchQuery = '';
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -56,14 +65,23 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
     });
   }
 
+  List<ScanHistoryItem> get _filteredItems {
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isEmpty) return _items;
+    return _items
+        .where((item) => item.text.toLowerCase().contains(q))
+        .toList(growable: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
+    final filtered = _filteredItems;
 
     return Container(
       key: const Key('scan_history_sheet'),
-      height: MediaQuery.sizeOf(context).height * 0.72,
+      height: MediaQuery.sizeOf(context).height * 0.76,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF170E36) : const Color(0xFFF6F3FC),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -131,19 +149,55 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
               ],
             ),
           ),
+          if (_items.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: TextField(
+                key: const Key('history_search_field'),
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search saved scans...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF21164B) : Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
           const Divider(height: 1),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : _items.isEmpty
+                : filtered.isEmpty
                     ? _buildEmptyState(isDark, l10n)
                     : ListView.separated(
                         key: const Key('history_list_view'),
                         padding: const EdgeInsets.all(16),
-                        itemCount: _items.length,
+                        itemCount: filtered.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
-                          final item = _items[index];
+                          final item = filtered[index];
                           return _buildHistoryCard(
                             context,
                             item: item,

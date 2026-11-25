@@ -10,6 +10,7 @@ import '../constants/app_theme.dart';
 import '../services/history_service.dart';
 import '../services/image_service.dart';
 import '../services/ocr_service.dart';
+import '../services/smart_entity_service.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/primary_button.dart';
@@ -144,6 +145,58 @@ class HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // Keep gallery cancellation/errors non-disruptive.
     }
+  }
+
+  Future<void> _handleBatchGalleryScan() async {
+    try {
+      final paths = await _imageService.pickMultipleFromGallery();
+      if (!mounted || paths.isEmpty) {
+        return;
+      }
+      _setUriState(paths.first);
+      setState(() {
+        _isExtracting = true;
+      });
+      final combinedText =
+          await _ocrService.extractFromMultipleFilePaths(paths);
+      if (!mounted) return;
+      setState(() {
+        _isExtracting = false;
+      });
+      if (combinedText == null || combinedText.trim().isEmpty) {
+        _textController.clear();
+        AppToast.showShort(context, AppStrings.toastNoTextDetected);
+      } else {
+        _textController.value = TextEditingValue(
+          text: combinedText,
+          selection: TextSelection.collapsed(offset: combinedText.length),
+        );
+        await _historyService.addEntry(
+          text: combinedText,
+          source: 'batch_${paths.length}',
+          score: calculateOcrScore(combinedText),
+        );
+        if (!mounted) return;
+        AppToast.showShort(context, AppStrings.toastTextExtracted);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isExtracting = false;
+      });
+      final cleanMsg = e.toString().replaceFirst('Exception: ', '').trim();
+      AppToast.showLong(context, AppStrings.toastProcessImageError(cleanMsg));
+    }
+  }
+
+  void _handleCleanText() {
+    final raw = _textController.text;
+    if (raw.trim().isEmpty) return;
+    final cleaned = SmartEntityService.cleanOcrText(raw);
+    _textController.value = TextEditingValue(
+      text: cleaned,
+      selection: TextSelection.collapsed(offset: cleaned.length),
+    );
   }
 
   Future<void> _handleCrop() async {
@@ -850,6 +903,76 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
+          ),
+          // Smart Entity Chips (Phone / Email / URL / Amount / Date) + Multi-Page Batch & Clean Text
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _textController,
+            builder: (context, value, _) {
+              final entities = SmartEntityService.detectEntities(value.text);
+              return Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ActionChip(
+                      key: const Key('batch_scan_button'),
+                      avatar: const Icon(
+                        Icons.collections_bookmark_rounded,
+                        size: 15,
+                        color: AppTheme.royalViolet,
+                      ),
+                      label: const Text(
+                        'Batch Scan',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _handleBatchGalleryScan,
+                    ),
+                    if (value.text.trim().isNotEmpty)
+                      ActionChip(
+                        key: const Key('smart_clean_text_chip'),
+                        avatar: const Icon(
+                          Icons.auto_fix_normal_rounded,
+                          size: 15,
+                          color: AppTheme.galleryTealEnd,
+                        ),
+                        label: const Text(
+                          'Clean Text',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _handleCleanText,
+                      ),
+                    ...entities.take(5).map((entity) {
+                      return ActionChip(
+                        key: Key('entity_chip_${entity.value}'),
+                        avatar: Icon(
+                          entity.kind.icon,
+                          size: 14,
+                          color: entity.kind.color,
+                        ),
+                        label: Text(
+                          entity.value,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _copyTextValue(entity.value),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 10),
           // Text card: 260dp tall, radius 16dp; editable, scrollable multiline TextField

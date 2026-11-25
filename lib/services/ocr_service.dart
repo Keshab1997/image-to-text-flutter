@@ -162,6 +162,25 @@ class OcrService {
     return recognizeBestText(inputImage);
   }
 
+  /// Extracts text across multiple image paths in order (Batch Multi-Page Scan)
+  /// and combines non-empty pages into a single formatted document.
+  Future<String?> extractFromMultipleFilePaths(List<String> paths) async {
+    if (paths.isEmpty) return null;
+    final pageSections = <String>[];
+    for (var i = 0; i < paths.length; i++) {
+      final pageText = await extractFromFilePath(paths[i]);
+      if (pageText != null && pageText.trim().isNotEmpty) {
+        if (paths.length == 1) {
+          pageSections.add(pageText.trim());
+        } else {
+          pageSections.add('--- Page ${i + 1} ---\n${pageText.trim()}');
+        }
+      }
+    }
+    if (pageSections.isEmpty) return null;
+    return pageSections.join('\n\n');
+  }
+
   /// Extracts text from an in-memory bitmap (state `bitmap`, rotation 0).
   Future<String?> extractFromBitmapBytes(Uint8List bitmapBytes) async {
     if (bitmapBytes.isEmpty) {

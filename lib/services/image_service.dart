@@ -52,17 +52,19 @@ class CropDecodeException implements Exception {
 
 typedef PermissionCheckCallback = Future<bool> Function();
 typedef FilePickCallback = Future<String?> Function();
+typedef MultiFilePickCallback = Future<List<String>> Function();
 typedef FileCropCallback = Future<String?> Function(String sourcePath);
 typedef BitmapValidatorCallback = Future<Uint8List> Function(
     String croppedPath);
 typedef TempDirCallback = Future<Directory> Function();
 
-/// Handles Camera capture, Gallery pick, uCrop cropping, and temp-file management.
+/// Handles Camera capture, Gallery pick, Multi-page batch pick, uCrop cropping, and temp-file management.
 class ImageService {
   ImageService({
     PermissionCheckCallback? cameraPermissionRequester,
     FilePickCallback? cameraPicker,
     FilePickCallback? galleryPicker,
+    MultiFilePickCallback? multiGalleryPicker,
     FileCropCallback? cropperRunner,
     BitmapValidatorCallback? bitmapLoader,
     TempDirCallback? tempDirProvider,
@@ -70,6 +72,7 @@ class ImageService {
             cameraPermissionRequester ?? _defaultRequestCameraPermission,
         _cameraPicker = cameraPicker ?? _defaultPickCamera,
         _galleryPicker = galleryPicker ?? _defaultPickGallery,
+        _multiGalleryPicker = multiGalleryPicker ?? _defaultPickMultiGallery,
         _cropperRunner = cropperRunner ?? _defaultCropImage,
         _bitmapLoader = bitmapLoader ?? _defaultLoadAndValidateBitmap,
         _tempDirProvider = tempDirProvider ?? getTemporaryDirectory;
@@ -77,6 +80,7 @@ class ImageService {
   final PermissionCheckCallback _cameraPermissionRequester;
   final FilePickCallback _cameraPicker;
   final FilePickCallback _galleryPicker;
+  final MultiFilePickCallback _multiGalleryPicker;
   final FileCropCallback _cropperRunner;
   final BitmapValidatorCallback _bitmapLoader;
   final TempDirCallback _tempDirProvider;
@@ -105,6 +109,11 @@ class ImageService {
       source: ImageSource.gallery,
     );
     return picked?.path;
+  }
+
+  static Future<List<String>> _defaultPickMultiGallery() async {
+    final picked = await _picker.pickMultiImage(imageQuality: 95);
+    return picked.map((x) => x.path).where((p) => p.isNotEmpty).toList();
   }
 
   static Future<String?> _defaultCropImage(String sourcePath) async {
@@ -199,6 +208,11 @@ class ImageService {
   /// Returns `null` silently if the user cancels.
   Future<String?> pickFromGallery() async {
     return _galleryPicker();
+  }
+
+  /// Picks multiple images from the gallery for Multi-Page Batch OCR.
+  Future<List<String>> pickMultipleFromGallery() async {
+    return _multiGalleryPicker();
   }
 
   /// Resolves a file path for cropping:
