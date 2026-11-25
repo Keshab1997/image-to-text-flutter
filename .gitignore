@@ -44,9 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Android signing (build.gradle.kts reads root key.properties)
-/key.properties
-
 # Widget Preview related
 .widget_preview/
 .agent-screens/
