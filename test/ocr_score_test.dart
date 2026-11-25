@@ -77,7 +77,7 @@ void main() {
           if (script == TextRecognitionScript.latin) {
             return '  Extracted Latin line  ';
           }
-          if (script == TextRecognitionScript.devanagari) {
+          if (script == TextRecognitionScript.devanagiri) {
             return 'नमस्ते भारत';
           }
           return '';

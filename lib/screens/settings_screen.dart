@@ -85,11 +85,16 @@ class SettingsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final option = AppStrings.supportedLanguages[index];
                 final isSelected = option.code == currentCode;
-                return RadioListTile<String>(
+                return ListTile(
                   key: Key('lang_option_${option.code}'),
-                  value: option.code,
-                  groupValue: currentCode,
-                  activeColor: AppTheme.royalViolet,
+                  leading: Icon(
+                    isSelected
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_off_rounded,
+                    color: isSelected
+                        ? AppTheme.royalViolet
+                        : Theme.of(context).hintColor,
+                  ),
                   title: Text(
                     option.nativeName,
                     style: TextStyle(
@@ -101,10 +106,8 @@ class SettingsScreen extends StatelessWidget {
                     option.code,
                     style: const TextStyle(fontSize: 12),
                   ),
-                  onChanged: (selectedCode) {
-                    if (selectedCode != null) {
-                      onLocaleChanged(Locale(selectedCode));
-                    }
+                  onTap: () {
+                    onLocaleChanged(Locale(option.code));
                     Navigator.of(dialogContext).pop();
                   },
                 );

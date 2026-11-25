@@ -1,4 +1,4 @@
-# AGENTS.md — Khoroch Diary
+# AGENTS.md — SnapText OCR
 
 Playbook for AI agents working in this repository. Read it once at the start of
 a session: everything here exists to keep the work moving without burning CI.

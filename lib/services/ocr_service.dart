@@ -113,7 +113,7 @@ class OcrService {
   static const List<TextRecognitionScript> supportedScripts = [
     TextRecognitionScript.latin,
     TextRecognitionScript.chinese,
-    TextRecognitionScript.devanagari,
+    TextRecognitionScript.devanagiri,
     TextRecognitionScript.japanese,
     TextRecognitionScript.korean,
   ];
@@ -170,14 +170,14 @@ class OcrService {
     final dir = _tempDirectoryOverride ?? await getTemporaryDirectory();
     final ts = DateTime.now().millisecondsSinceEpoch;
     final tempFile = File('${dir.path}/ocr_bitmap_$ts.jpg');
-    await tempFile.writeAsBytes(bitmapBytes, flush: true);
+    tempFile.writeAsBytesSync(bitmapBytes, flush: true);
     try {
       final inputImage = InputImage.fromFilePath(tempFile.path);
       return await recognizeBestText(inputImage);
     } finally {
       if (tempFile.existsSync()) {
         try {
-          await tempFile.delete();
+          tempFile.deleteSync();
         } catch (_) {}
       }
     }

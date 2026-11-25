@@ -121,9 +121,7 @@ class ImageService {
           activeControlsWidgetColor: AppTheme.electricIndigo,
           initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: false,
-          freeStyleCropEnabled: true,
           showCropGrid: true,
-          showCropFrame: true,
           hideBottomControls: false,
         ),
       ],
@@ -167,12 +165,12 @@ class ImageService {
       final ts = DateTime.now().millisecondsSinceEpoch;
       tempCameraFile = File('${tempDir.path}/camera_$ts.jpg');
       // Pre-create temp file as in original FileProvider flow
-      await tempCameraFile.writeAsBytes(const <int>[], flush: true);
+      tempCameraFile.writeAsBytesSync(const <int>[], flush: true);
 
       final capturedPath = await _cameraPicker();
       if (capturedPath == null || capturedPath.trim().isEmpty) {
         if (tempCameraFile.existsSync()) {
-          await tempCameraFile.delete();
+          tempCameraFile.deleteSync();
         }
         throw const CameraCaptureCancelledException();
       }
@@ -180,7 +178,7 @@ class ImageService {
       if (capturedPath != tempCameraFile.path) {
         final capturedFile = File(capturedPath);
         if (capturedFile.existsSync()) {
-          await capturedFile.copy(tempCameraFile.path);
+          capturedFile.copySync(tempCameraFile.path);
         }
       }
       return tempCameraFile.path;
@@ -189,7 +187,7 @@ class ImageService {
     } catch (e) {
       if (tempCameraFile != null && tempCameraFile.existsSync()) {
         try {
-          await tempCameraFile.delete();
+          tempCameraFile.deleteSync();
         } catch (_) {}
       }
       throw CameraOpenException(e.toString());
@@ -218,7 +216,7 @@ class ImageService {
       final tempDir = await _tempDirProvider();
       final ts = DateTime.now().millisecondsSinceEpoch;
       final file = File('${tempDir.path}/camera_$ts.jpg');
-      await file.writeAsBytes(currentBitmapBytes, flush: true);
+      file.writeAsBytesSync(currentBitmapBytes, flush: true);
       return file.path;
     }
     return null;
