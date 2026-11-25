@@ -9,7 +9,7 @@ plugins {
 
 // Upload key lives in android/key.properties (gitignored). CI writes the same
 // file from the ANDROID_KEYSTORE_BASE64 / KEY_* secrets before building.
-val keystorePropertiesFile = rootProject.file("android/key.properties")
+val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
