@@ -53,7 +53,8 @@ class CropDecodeException implements Exception {
 typedef PermissionCheckCallback = Future<bool> Function();
 typedef FilePickCallback = Future<String?> Function();
 typedef FileCropCallback = Future<String?> Function(String sourcePath);
-typedef BitmapValidatorCallback = Future<Uint8List> Function(String croppedPath);
+typedef BitmapValidatorCallback = Future<Uint8List> Function(
+    String croppedPath);
 typedef TempDirCallback = Future<Directory> Function();
 
 /// Handles Camera capture, Gallery pick, uCrop cropping, and temp-file management.

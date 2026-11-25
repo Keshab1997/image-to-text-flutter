@@ -15,8 +15,10 @@ import '../widgets/banner_ad_widget.dart';
 import '../widgets/primary_button.dart';
 import 'history_sheet.dart';
 
-typedef ShareTextCallback = Future<void> Function(String text, {String? subject});
-typedef ClipboardCopyCallback = Future<void> Function(String text, {String label});
+typedef ShareTextCallback = Future<void> Function(String text,
+    {String? subject});
+typedef ClipboardCopyCallback = Future<void> Function(String text,
+    {String label});
 
 /// Screen 1 — Home Screen of SnapText OCR.
 ///
@@ -372,9 +374,8 @@ class HomeScreenState extends State<HomeScreen> {
                             backgroundColor: isDark
                                 ? const Color(0xFF281C54)
                                 : const Color(0xFFE8E2F8),
-                            foregroundColor: isDark
-                                ? Colors.white
-                                : const Color(0xFF33206E),
+                            foregroundColor:
+                                isDark ? Colors.white : const Color(0xFF33206E),
                             borderColor: isDark
                                 ? Colors.white.withValues(alpha: 0.14)
                                 : const Color(0xFFD1C4E9),

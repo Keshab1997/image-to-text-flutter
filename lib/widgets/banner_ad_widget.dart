@@ -145,7 +145,8 @@ class _BannerAdSlotState extends State<BannerAdSlot>
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: isDark ? const Color(0xFFB388FF) : const Color(0xFF5E35B1),
+                color:
+                    isDark ? const Color(0xFFB388FF) : const Color(0xFF5E35B1),
               ),
             ),
           ),

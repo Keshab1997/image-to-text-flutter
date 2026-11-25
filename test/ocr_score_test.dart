@@ -29,7 +29,9 @@ void main() {
       expect(calculateOcrScore('한글'), equals(12));
     });
 
-    test('preserves Bengali quirk (U+0980..U+09FF scored as letter/digit +2, not +5)', () {
+    test(
+        'preserves Bengali quirk (U+0980..U+09FF scored as letter/digit +2, not +5)',
+        () {
       // 'কখগ' -> 3 Bengali letters (*2 = 6) + length 3 = 9
       expect(calculateOcrScore('কখগ'), equals(9));
     });

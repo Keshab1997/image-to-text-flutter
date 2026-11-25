@@ -123,7 +123,8 @@ class AppLocalizations {
     'bn': {
       'mainSubtitle': 'আপনার ছবি থেকে সহজেই টেক্সট আলাদা করুন',
       'noImageSelected': 'কোনো ছবি নির্বাচন করা হয়নি',
-      'chooseImageHint': 'ক্যামেরায় ছবি তুলুন অথবা গ্যালারি থেকে একটি ছবি বেছে নিন',
+      'chooseImageHint':
+          'ক্যামেরায় ছবি তুলুন অথবা গ্যালারি থেকে একটি ছবি বেছে নিন',
       'heroDropPrompt': 'মুহূর্তেই টেক্সট স্ক্যান করতে ছবি তুলুন বা আপলোড করুন',
       'camera': 'ক্যামেরা',
       'cameraSub': 'এখনই স্ক্যান করুন',
@@ -209,7 +210,8 @@ class AppLocalizations {
     'fr': {
       'mainSubtitle': 'Extrayez le texte de vos images',
       'noImageSelected': 'Aucune image sélectionnée',
-      'chooseImageHint': 'Prenez une photo ou choisissez une image de la galerie',
+      'chooseImageHint':
+          'Prenez une photo ou choisissez une image de la galerie',
       'heroDropPrompt': 'Appuyez pour scanner du texte instantanément',
       'camera': 'Caméra',
       'cameraSub': 'Scanner',

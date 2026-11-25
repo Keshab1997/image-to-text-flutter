@@ -91,9 +91,8 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                   ),
                   child: Icon(
                     Icons.history_rounded,
-                    color: isDark
-                        ? const Color(0xFFB388FF)
-                        : AppTheme.royalViolet,
+                    color:
+                        isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -219,8 +218,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppTheme.royalViolet.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -230,9 +228,8 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? const Color(0xFFB388FF)
-                        : AppTheme.royalViolet,
+                    color:
+                        isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
                   ),
                 ),
               ),

@@ -30,8 +30,7 @@ class AppStrings {
 
   // AdMob Official Test IDs (per Spec §6.1)
   // TODO(release): Replace with Keshab Studios' production AdMob App ID and Banner Unit ID before Play Store release.
-  static const String admobTestAppId =
-      'ca-app-pub-3940256099942544~3347511713';
+  static const String admobTestAppId = 'ca-app-pub-3940256099942544~3347511713';
   static const String admobTestBannerUnitId =
       'ca-app-pub-3940256099942544/6300978111';
 
@@ -94,8 +93,7 @@ class AppStrings {
   static const String toastCameraCancelled = 'Camera capture cancelled';
   static String toastCameraOpenError(String message) =>
       'Could not open camera: $message';
-  static const String toastCropNoImage =
-      'Please choose or take an image first';
+  static const String toastCropNoImage = 'Please choose or take an image first';
   static const String toastCropNoOutput = 'Could not get cropped image';
   static String toastCropFailed(String? message) =>
       'Crop failed: ${(message == null || message.trim().isEmpty) ? 'Unknown error' : message}';
@@ -127,8 +125,7 @@ class AppStrings {
       'By using Image to Text, you agree to use the application responsibly and lawfully.';
 
   static const String contactEmailSubject = 'Image to Text Support';
-  static const String contactEmailBody =
-      'Hello Keshab Studios,\n\n'
+  static const String contactEmailBody = 'Hello Keshab Studios,\n\n'
       'I need help with the SnapText OCR (Image to Text) app.\n\n'
       'My question or issue:\n\n\n'
       'Thank you.';
@@ -175,8 +172,9 @@ class AppStrings {
     AppLanguageOption(code: 'te', nativeName: 'తెలుగు'),
   ];
 
-  static List<Locale> get supportedLocales =>
-      supportedLanguages.map((lang) => Locale(lang.code)).toList(growable: false);
+  static List<Locale> get supportedLocales => supportedLanguages
+      .map((lang) => Locale(lang.code))
+      .toList(growable: false);
 
   static AppLanguageOption languageForCode(String code) {
     for (final option in supportedLanguages) {

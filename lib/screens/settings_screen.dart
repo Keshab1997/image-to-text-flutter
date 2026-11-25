@@ -506,9 +506,8 @@ class SettingsScreen extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 20,
-                  color: isDark
-                      ? const Color(0xFFB388FF)
-                      : AppTheme.royalViolet,
+                  color:
+                      isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
                 ),
               ),
               const SizedBox(width: 10),
@@ -603,9 +602,8 @@ class SettingsScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? const Color(0xFFB388FF)
-                        : AppTheme.royalViolet,
+                    color:
+                        isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
                   ),
                 ),
               )

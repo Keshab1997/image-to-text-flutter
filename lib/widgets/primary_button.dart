@@ -24,9 +24,8 @@ class BentoActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1442) : Colors.white;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.10)
-        : const Color(0xFFE3DCF7);
+    final borderColor =
+        isDark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFE3DCF7);
 
     return Material(
       color: cardBg,
@@ -92,7 +91,8 @@ class BentoActionTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white60 : const Color(0xFF6B628C),
+                        color:
+                            isDark ? Colors.white60 : const Color(0xFF6B628C),
                       ),
                     ),
                   ],
@@ -150,7 +150,9 @@ class SmartPillButton extends StatelessWidget {
             : null,
         color: hasGradient ? null : (backgroundColor ?? AppTheme.royalViolet),
         borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-        border: borderColor != null ? Border.all(color: borderColor!, width: 1.4) : null,
+        border: borderColor != null
+            ? Border.all(color: borderColor!, width: 1.4)
+            : null,
         boxShadow: elevation > 0
             ? [
                 BoxShadow(
