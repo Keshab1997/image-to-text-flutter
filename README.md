@@ -24,8 +24,9 @@ agent from the specification in this repo.
 - Keep the app name "Image to Text" unless the repository owner says otherwise.
 - OCR must be 100% **on-device** with the five ML Kit scripts in the spec; no backend
   or API key is needed for the core feature.
-- Ads are optional. If implemented, use Google's test IDs during development and
-  leave a clear note for replacing them before release.
+- Banner ads on **both** screens are part of "works the same as the original".
+  Use Google's test IDs during development and leave a clear TODO for replacing them
+  with the owner's IDs before release. Only omit ads if the owner explicitly asks.
 - Do not reproduce the original PairIP licensing/anti-tamper layer.
 
 ## Definition of done

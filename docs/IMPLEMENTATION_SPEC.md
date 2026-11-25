@@ -13,8 +13,10 @@ An offline OCR utility. The user picks or takes a photo, optionally crops it, ta
 picks the best result, and shows it in an editable box that can be copied or shared.
 A Settings screen controls theme and app language and holds policy/about links.
 
-Target behaviour: **parity with the original v1.1**, unless a documented improvement
-in §9 is deliberately chosen.
+Target behaviour: **the app must work exactly like the original v1.1** — same screens,
+same flows, same messages, same result selection, same banner ads — unless a documented
+improvement in §9 is deliberately chosen. "Looks similar" is not enough; every observable
+behaviour in §2–§6 is a requirement.
 
 ---
 
@@ -95,7 +97,10 @@ test/
    - Heading `Extracted Text`, 20sp bold.
    - **Text card**: 260dp tall, radius 16dp; inside it an **editable, scrollable**
      text field, hint `Extracted text will appear here...`, 16sp, top-left gravity,
-     multiline, caret at end after extraction.
+     multiline, caret at end after extraction. Scrollbars must always be visible and
+     the field must keep touch scrolling for itself inside the scrollable body (the
+     original calls `requestDisallowInterceptTouchEvent(true)` on down/move and
+     `false` on up/cancel) — do not let the parent steal its scroll.
    - **Row 3**: `Copy`, `Share` buttons, equal width.
    - Full-width outlined `Clear` button.
 3. **Footer** — `© 2026 Eugene Luckyson`, 15sp bold, centred.
@@ -158,6 +163,36 @@ Setting an image clears the extracted text. Clearing resets all state and text.
 **Clear**
 - Reset image state, empty preview, show empty state, clear text, hide spinner,
   toast **"Cleared"**.
+
+### 2.4 Exact toast/message contract
+
+Messages are case- and punctuation-sensitive. Duration: **short** ≈ 2 s, **long** ≈ 3.5 s.
+
+| Trigger | Message | Duration |
+|---|---|---|
+| Camera permission denied | `Camera permission is required` | long |
+| Photo captured | `Photo captured successfully` | short |
+| Photo capture cancelled | `Camera capture cancelled` | short |
+| Camera open error | `Could not open camera: <message>` | long |
+| Crop with no image | `Please choose or take an image first` | short |
+| Crop result has no output | `Could not get cropped image` | short |
+| Crop error | `Crop failed: <message>` (or `Crop failed: Unknown error`) | long |
+| Cropped image loaded | `Image cropped successfully` | short |
+| Cropped image decode error | `Could not load cropped image: <message>` | long |
+| Extract with no image | `Please choose an image first` | short |
+| No recognised text | `No text was detected` | short |
+| Text extracted | `Text extracted successfully` | short |
+| Image processing error | `Unable to process image: <message>` | long |
+| Copy with empty text | `There is no text to copy` | short |
+| Copy success | `Text copied` | short |
+| Share with empty text | `There is no text to share` | short |
+| Clear | `Cleared` | short |
+| Light / Dark / System theme | `Light mode enabled` / `Dark mode enabled` / `System mode enabled` | short |
+| Browser open failure | `Unable to open Privacy Policy` | long |
+| No email app | `No email application found` | long |
+
+Share uses MIME `text/plain` and chooser title **`Share extracted text`**.
+Copy uses clipboard label **`Extracted Text`**.
 
 ---
 
@@ -334,15 +369,29 @@ Use the real app version where the original used `1.0` fallback.
 `About the App`, `Back`, `OK`, `Cancel`, `Unable to open Privacy Policy`,
 `No email application found`, `© 2026 Eugene Luckyson`.
 
-Runtime toasts are listed in §2.3/§4. Put all of them in ARB/localisation files.
+Runtime toasts are listed in §2.4/§4. Put all of them in ARB/localisation files.
+
+---
+
+## 6.1 Banner ads (part of "works the same")
+
+The original shows a **banner ad at the bottom of both screens**. For exact parity,
+keep a banner ad widget on Home and on Settings; initialise the ads SDK at startup and
+pause/resume/destroy it with the widget lifecycle. During development use Google's
+test IDs (matching the original):
+
+- App ID: `ca-app-pub-3940256099942544~3347511713`
+- Banner unit: `ca-app-pub-3940256099942544/6300978111`
+
+Leave a clear TODO in code to replace with the app owner's own AdMob IDs before
+release. If the owner explicitly asks for an ad-free build, that is the only case in
+which ads may be omitted.
 
 ---
 
 ## 7. Out of scope (do not rebuild)
 
 - PairIP licensing / anti-tamper checks (Play-store protection only).
-- The original's AdMob **test** IDs (`ca-app-pub-3940256099942544~3347511713` /
-  `.../6300978111`) — use your own IDs or omit ads.
 - Room/WorkManager/Startup/ProfileInstaller plumbing — implementation detail of the
   native app, not a user-facing feature.
 - The unused bundled legacy `Beng_ctc` ML Kit asset — not wired into the original code.
@@ -357,7 +406,9 @@ Runtime toasts are listed in §2.3/§4. Put all of them in ARB/localisation file
 - [ ] Extract runs all five ML Kit scripts and picks the best result with the exact
       scoring function in §3; unit test covers the scoring and tie-break.
 - [ ] Result box is editable and scrollable; caret moves to end after extraction.
-- [ ] Copy / Share / Clear guards and toasts match exactly.
+- [ ] Copy / Share / Clear guards and toasts match exactly, including message text and
+      short/long duration from §2.4.
+- [ ] Banner ad appears at the bottom of **both** screens (§6.1), with lifecycle handled.
 - [ ] Settings theme buttons change theme and persist across restarts.
 - [ ] Language dialog lists all 21 entries in order and persists the selection.
 - [ ] Privacy / Content Policy / Contact / About dialogs and links match §4.
@@ -375,7 +426,7 @@ Runtime toasts are listed in §2.3/§4. Put all of them in ARB/localisation file
 5. Add the remaining four recognisers and the exact scoring function + unit tests.
 6. Copy / Share / Clear.
 7. Settings screen: theme, language, dialogs, links.
-8. Optional ads, then polish, `analyze`, `test`, acceptance review.
+8. Banner ads on both screens (§6.1), then polish, `analyze`, `test`, acceptance review.
 
 ---
 
