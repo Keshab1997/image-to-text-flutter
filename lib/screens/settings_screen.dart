@@ -94,7 +94,7 @@ class SettingsScreen extends StatelessWidget {
                         ? Icons.radio_button_checked_rounded
                         : Icons.radio_button_off_rounded,
                     color: isSelected
-                        ? AppTheme.royalViolet
+                        ? AppTheme.accent
                         : Theme.of(context).hintColor,
                   ),
                   title: Text(
@@ -387,7 +387,7 @@ class SettingsScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white70 : const Color(0xFF42366E),
+                  color: AppTheme.textMuted(isDark),
                 ),
               ),
             ),
@@ -407,26 +407,15 @@ class SettingsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(20, topPad + 14, 20, 14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? const [Color(0xFF28175E), Color(0xFF170D3B)]
-              : const [Color(0xFF512DA8), Color(0xFF673AB7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppTheme.bg(isDark),
+        border: Border(bottom: BorderSide(color: AppTheme.border(isDark))),
       ),
       child: Row(
         children: [
           Container(
             width: 46,
             height: 46,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFF80D8FF),
-                width: 2,
-              ),
-            ),
+            decoration: const BoxDecoration(shape: BoxShape.circle),
             child: ClipOval(
               child: Image.asset(
                 'assets/images/mascot_avatar.png',
@@ -477,20 +466,9 @@ class SettingsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1B123E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFFE3DCF7),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppTheme.surface(isDark),
+        borderRadius: BorderRadius.circular(AppTheme.imageCardRadius),
+        border: Border.all(color: AppTheme.border(isDark)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -500,14 +478,14 @@ class SettingsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.royalViolet.withValues(alpha: 0.14),
+                  color: AppTheme.accentSoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   icon,
                   size: 20,
                   color:
-                      isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
+                      AppTheme.accentText(isDark),
                 ),
               ),
               const SizedBox(width: 10),
@@ -520,7 +498,7 @@ class SettingsScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : const Color(0xFF1A103D),
+                        color: AppTheme.text(isDark),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -529,7 +507,7 @@ class SettingsScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13.5,
                         color:
-                            isDark ? Colors.white60 : const Color(0xFF6B628C),
+                            AppTheme.textMuted(isDark),
                       ),
                     ),
                   ],
@@ -553,12 +531,11 @@ class SettingsScreen extends StatelessWidget {
     bool isSelected = false,
     String? trailingBadge,
   }) {
-    final bgColor = isSelected
-        ? AppTheme.royalViolet
-        : (isDark ? const Color(0xFF261A54) : const Color(0xFFF3EFFB));
-    final fgColor = isSelected
-        ? Colors.white
-        : (isDark ? Colors.white : const Color(0xFF22164C));
+    // Selected = pale accent wash with an accent outline. A solid accent block
+    // here shouted louder than the actual screen content.
+    final bgColor = isSelected ? AppTheme.accentSoft : AppTheme.surface(isDark);
+    final fgColor =
+        isSelected ? AppTheme.accentText(isDark) : AppTheme.text(isDark);
 
     return SizedBox(
       width: double.infinity,
@@ -567,9 +544,13 @@ class SettingsScreen extends StatelessWidget {
         key: key,
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          elevation: isSelected ? 2 : 0,
+          elevation: 0,
           backgroundColor: bgColor,
           foregroundColor: fgColor,
+          side: BorderSide(
+            color: isSelected ? AppTheme.accent : AppTheme.border(isDark),
+            width: isSelected ? 1.5 : 1,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
           ),
@@ -594,8 +575,8 @@ class SettingsScreen extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.royalViolet.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.accentSoft,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   trailingBadge,
@@ -603,15 +584,15 @@ class SettingsScreen extends StatelessWidget {
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                     color:
-                        isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
+                        AppTheme.accentText(isDark),
                   ),
                 ),
               )
             else if (isSelected)
-              const Icon(
+              Icon(
                 Icons.check_circle_rounded,
                 size: 18,
-                color: Colors.white,
+                color: AppTheme.accentText(isDark),
               )
             else
               Icon(

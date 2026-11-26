@@ -126,9 +126,9 @@ class ImageService {
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: AppStrings.cropToolbarTitle,
-          toolbarColor: AppTheme.royalViolet,
+          toolbarColor: AppTheme.accent,
           toolbarWidgetColor: Colors.white,
-          activeControlsWidgetColor: AppTheme.electricIndigo,
+          activeControlsWidgetColor: AppTheme.accentDark,
           initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: false,
           showCropGrid: true,

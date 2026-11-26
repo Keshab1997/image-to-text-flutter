@@ -8,9 +8,28 @@ import 'package:snaptext_ocr/constants/app_theme.dart';
 import 'package:snaptext_ocr/screens/home_screen.dart';
 import 'package:snaptext_ocr/screens/settings_screen.dart';
 
+import 'dart:io';
+
 import 'shot_framework.dart';
 
+/// `<sdk>/bin/cache/dart-sdk/bin/dart` -> `<sdk>`, so the font path can be found
+/// without hard-coding one machine's layout.
+String _sdkRoot() {
+  var dir = File(Platform.resolvedExecutable).parent;
+  for (var i = 0; i < 5; i++) {
+    dir = dir.parent;
+  }
+  return dir.path;
+}
+
+// Flutter's test renderer has no system font, so text would otherwise come out
+// as black boxes. Roboto ships with the SDK next to the icon font; point the
+// registry at it explicitly.
 final ShotEnv env = ShotEnv(
+  fontAssets: <String, String>{
+    'Roboto': '${Platform.environment['FLUTTER_ROOT'] ?? _sdkRoot()}'
+        '/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
+  },
   app: (Shot shot, Widget home) => MaterialApp(
     title: AppStrings.appName,
     debugShowCheckedModeBanner: false,

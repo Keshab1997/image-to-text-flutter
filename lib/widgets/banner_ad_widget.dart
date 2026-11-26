@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import '../constants/app_theme.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../constants/app_strings.dart';
@@ -122,41 +124,40 @@ class _BannerAdSlotState extends State<BannerAdSlot>
       height: 50,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF140C32) : const Color(0xFFEDE7F6),
+        color: AppTheme.surface(isDark),
         border: Border(
-          top: BorderSide(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : const Color(0xFFD1C4E9),
-          ),
+          top: BorderSide(color: AppTheme.border(isDark)),
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF5E35B1).withValues(alpha: 0.18),
+              border: Border.all(color: AppTheme.border(isDark)),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               'AD',
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color:
-                    isDark ? const Color(0xFFB388FF) : const Color(0xFF5E35B1),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textMuted(isDark),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            'SnapText OCR • Google Test Banner',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white70 : Colors.black54,
+          Flexible(
+            child: Text(
+              'SnapText OCR banner',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: AppTheme.textMuted(isDark),
+              ),
             ),
           ),
         ],

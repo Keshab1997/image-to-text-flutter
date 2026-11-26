@@ -381,111 +381,82 @@ class HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildHeroImageCard(context, isDark, l10n),
-                    const SizedBox(height: 14),
-                    // Row 1: Camera & Gallery equal-width bento buttons (6dp+ gap)
+                    _buildImageCard(context, isDark, l10n),
+                    const SizedBox(height: 12),
+                    // Two rows, four actions, one accent. Camera and Extract
+                    // are filled because they are the verbs; Gallery and Crop
+                    // are outlined because they only prepare the input.
                     Row(
                       children: [
                         Expanded(
-                          child: BentoActionTile(
+                          child: PrimaryActionButton(
                             key: const Key('camera_button'),
-                            title: l10n.camera,
-                            subtitle: l10n.cameraSub,
+                            label: l10n.camera,
                             icon: Icons.camera_alt_rounded,
-                            gradientColors: const [
-                              AppTheme.cameraOrangeStart,
-                              AppTheme.cameraOrangeEnd,
-                            ],
-                            onTap: _handleCamera,
+                            onPressed: _handleCamera,
                           ),
                         ),
                         const SizedBox(width: AppTheme.buttonGap),
                         Expanded(
-                          child: BentoActionTile(
+                          child: SecondaryActionButton(
                             key: const Key('gallery_button'),
-                            title: l10n.gallery,
-                            subtitle: l10n.gallerySub,
+                            label: l10n.gallery,
                             icon: Icons.photo_library_rounded,
-                            gradientColors: const [
-                              AppTheme.galleryTealStart,
-                              AppTheme.galleryTealEnd,
-                            ],
-                            onTap: _handleGallery,
+                            onPressed: _handleGallery,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    // Row 2: Crop & Extract Text equal-width pill buttons (6dp+ gap)
+                    const SizedBox(height: AppTheme.buttonGap),
                     Row(
                       children: [
                         Expanded(
-                          child: SmartPillButton(
+                          child: SecondaryActionButton(
                             key: const Key('crop_button'),
                             label: l10n.crop,
                             icon: Icons.crop_rounded,
-                            backgroundColor: isDark
-                                ? const Color(0xFF281C54)
-                                : const Color(0xFFE8E2F8),
-                            foregroundColor:
-                                isDark ? Colors.white : const Color(0xFF33206E),
-                            borderColor: isDark
-                                ? Colors.white.withValues(alpha: 0.14)
-                                : const Color(0xFFD1C4E9),
-                            elevation: 0,
                             onPressed: _handleCrop,
                           ),
                         ),
                         const SizedBox(width: AppTheme.buttonGap),
                         Expanded(
-                          child: SmartPillButton(
+                          child: PrimaryActionButton(
                             key: const Key('extract_button'),
                             label: l10n.extractText,
-                            trailingIcon: Icons.auto_fix_high_rounded,
-                            gradientColors: const [
-                              AppTheme.royalViolet,
-                              AppTheme.electricIndigo,
-                            ],
+                            icon: Icons.auto_fix_high_rounded,
                             onPressed: _handleExtractText,
                           ),
                         ),
                       ],
                     ),
                     if (_isExtracting) ...[
-                      const SizedBox(height: 16),
-                      Center(
-                        child: Column(
-                          key: const Key('ocr_progress_spinner'),
-                          children: [
-                            const SizedBox(
-                              width: 32,
-                              height: 32,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                              ),
+                      const SizedBox(height: 14),
+                      Row(
+                        key: const Key('ocr_progress_spinner'),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Extracting text…',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textMuted(isDark),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Running 5-script AI OCR engine...',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? const Color(0xFFB388FF)
-                                    : AppTheme.royalViolet,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ],
-                    const SizedBox(height: 16),
-                    _buildExtractedTextStudioCard(context, isDark, l10n),
+                    const SizedBox(height: 22),
+                    _buildExtractedTextSection(context, isDark, l10n),
                   ],
                 ),
               ),
             ),
-            _buildMockupBottomNavBar(isDark, l10n),
             const BannerAdSlot(),
           ],
         ),
@@ -493,120 +464,65 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Header — padding 20dp horizontal, 12dp vertical (Spec §2.1 + v2 Mockup).
+  /// Header — title, one line of context, history and settings. No gradient
+  /// banner, no mascot badge competing with the content below it.
   Widget _buildHeader(
     BuildContext context,
     bool isDark,
     AppLocalizations l10n,
   ) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? const [Color(0xFF2B1964), Color(0xFF1A0F42)]
-              : const [Color(0xFF512DA8), Color(0xFF673AB7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.royalViolet.withValues(alpha: 0.28),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.screenPadding,
+        10,
+        AppTheme.screenPadding,
+        6,
       ),
       child: Row(
         children: [
-          // Mascot Avatar Badge
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFF80D8FF),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF7C4DFF).withValues(alpha: 0.45),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/mascot_avatar.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.smart_toy_rounded,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   AppStrings.appName,
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.text(isDark),
                     letterSpacing: -0.3,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   l10n.mainSubtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 13,
+                    color: AppTheme.textMuted(isDark),
                   ),
                 ),
               ],
             ),
           ),
-          // Right: circular icon button 56x56dp, blue #1976d2, stroke #64b5f6, white settings icon 30dp
-          Tooltip(
-            message: l10n.settings,
-            child: Semantics(
-              label: l10n.settings,
-              button: true,
-              child: SizedBox(
-                width: AppTheme.settingsFabSize,
-                height: AppTheme.settingsFabSize,
-                child: Material(
-                  color: AppTheme.settingsFabBlue,
-                  elevation: 6,
-                  shape: const CircleBorder(
-                    side: BorderSide(
-                      color: AppTheme.settingsFabStroke,
-                      width: 2,
-                    ),
-                  ),
-                  child: InkWell(
-                    key: const Key('settings_button'),
-                    customBorder: const CircleBorder(),
-                    onTap: widget.onOpenSettings,
-                    child: const Center(
-                      child: Icon(
-                        Icons.settings_rounded,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+          IconButton(
+            key: const Key('bottom_nav_history'),
+            tooltip: l10n.scanHistory,
+            onPressed: _openHistorySheet,
+            icon: Icon(
+              Icons.history_rounded,
+              color: AppTheme.textMuted(isDark),
+            ),
+          ),
+          IconButton(
+            key: const Key('settings_button'),
+            tooltip: l10n.settings,
+            onPressed: widget.onOpenSettings,
+            icon: Icon(
+              Icons.settings_rounded,
+              color: AppTheme.textMuted(isDark),
             ),
           ),
         ],
@@ -614,135 +530,81 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Image Card: 300dp tall, radius 20dp, elevation 2dp (Spec §2.1 + v2 Mockup).
-  Widget _buildHeroImageCard(
+  /// The image target. Flat surface, one muted line of copy, and the mascot
+  /// only as a small mark — the previous 300dp illustrated hero pushed the
+  /// actual buttons below the fold on a 390x844 phone.
+  Widget _buildImageCard(
     BuildContext context,
     bool isDark,
     AppLocalizations l10n,
   ) {
     final hasImage = _imageState != ImageSelectionState.none;
 
-    return Card(
+    return Container(
       key: const Key('image_card'),
-      elevation: 2,
-      margin: EdgeInsets.zero,
+      height: AppTheme.imageCardHeight,
+      width: double.infinity,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: AppTheme.surface(isDark),
         borderRadius: BorderRadius.circular(AppTheme.imageCardRadius),
+        border: Border.all(color: AppTheme.border(isDark)),
       ),
-      child: SizedBox(
-        height: AppTheme.imageCardHeight,
-        width: double.infinity,
-        child: hasImage
-            ? _buildSelectedImagePreview(isDark)
-            : _buildMascotEmptyState(l10n),
-      ),
+      child: hasImage
+          ? _buildSelectedImagePreview(isDark)
+          : _buildEmptyState(l10n, isDark),
     );
   }
 
-  Widget _buildMascotEmptyState(AppLocalizations l10n) {
-    return Stack(
+  Widget _buildEmptyState(AppLocalizations l10n, bool isDark) {
+    return Center(
       key: const Key('empty_image_state'),
-      fit: StackFit.expand,
-      children: [
-        // Background 3D Robot-Scholar Mascot Hero Illustration
-        Image.asset(
-          'assets/images/mascot_hero.png',
-          fit: BoxFit.cover,
-          alignment: Alignment.centerRight,
-          errorBuilder: (_, __, ___) => Container(
-            color: AppTheme.deepCosmic,
-          ),
-        ),
-        // Subtle gradient scrim on the left so text is super legible
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF120831).withValues(alpha: 0.92),
-                const Color(0xFF190C40).withValues(alpha: 0.72),
-                Colors.transparent,
-              ],
-              stops: const [0.0, 0.54, 1.0],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipOval(
+              child: Image.asset(
+                'assets/images/mascot_avatar.png',
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.image_outlined,
+                  size: 30,
+                  color: AppTheme.textMuted(isDark),
+                ),
+              ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Gallery icon 64dp at 55% opacity (Spec §2.1)
-                Opacity(
-                  opacity: 0.55,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(
-                      Icons.photo_library_outlined,
-                      size: 64,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  l10n.noImageSelected,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 230),
-                  child: Text(
-                    l10n.chooseImageHint,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.3,
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF80D8FF).withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Text(
-                    l10n.heroDropPrompt,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 10),
+            Text(
+              l10n.noImageSelected,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.text(isDark),
+              ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                l10n.chooseImageHint,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: AppTheme.textMuted(isDark),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -757,11 +619,10 @@ class HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         height: AppTheme.imageCardHeight,
         errorBuilder: (_, __, ___) => const Center(
-          child: Icon(Icons.broken_image_rounded, size: 56),
+          child: Icon(Icons.broken_image_rounded, size: 40),
         ),
       );
-    } else if (_imageState == ImageSelectionState.uri &&
-        _selectedImagePath != null) {
+    } else {
       previewWidget = Image.file(
         File(_selectedImagePath!),
         key: const Key('image_preview_uri'),
@@ -769,215 +630,67 @@ class HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         height: AppTheme.imageCardHeight,
         errorBuilder: (_, __, ___) => const Center(
-          child: Icon(Icons.image_outlined, size: 56),
+          child: Icon(Icons.image_outlined, size: 40),
         ),
       );
-    } else {
-      previewWidget = const SizedBox.shrink();
     }
 
     return Container(
       key: const Key('image_preview'),
-      color: isDark ? const Color(0xFF140B30) : const Color(0xFF1B103D),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Center(child: previewWidget),
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF80D8FF).withValues(alpha: 0.6),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: Color(0xFF00E676),
-                    size: 14,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _imageState == ImageSelectionState.bitmap
-                        ? 'Cropped Image'
-                        : 'Image Ready',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+      color: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
+      child: Center(child: previewWidget),
     );
   }
 
-  /// Extracted Text studio container matching Spec §2.1 + v2 Mockup.
-  Widget _buildExtractedTextStudioCard(
+  /// Extracted text: one heading, the field, then the actions that only make
+  /// sense once there is text. Chips stay because they are the fastest way to
+  /// grab an email or amount, but they are muted and only appear when the
+  /// detector actually finds something.
+  Widget _buildExtractedTextSection(
     BuildContext context,
     bool isDark,
     AppLocalizations l10n,
   ) {
-    final studioBg = isDark ? const Color(0xFF1B123E) : Colors.white;
-    final innerFieldBg =
-        isDark ? const Color(0xFF120B2B) : const Color(0xFFF7F4FD);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: studioBg,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFFE2DAF5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.extractedText,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text(
+              l10n.extractedText,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.text(isDark),
+              ),
+            ),
+            const Spacer(),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _textController,
+              builder: (context, value, _) {
+                final len = value.text.trim().length;
+                if (len == 0) return const SizedBox.shrink();
+                return Text(
+                  '$len chars',
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : const Color(0xFF1A103D),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textMuted(isDark),
                   ),
-                ),
-              ),
-              ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _textController,
-                builder: (context, value, _) {
-                  final len = value.text.trim().length;
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.royalViolet.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      len == 0 ? 'Ready' : '$len chars',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? const Color(0xFFB388FF)
-                            : AppTheme.royalViolet,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 6),
-              // `...` History button in top-right of Extracted Text card (matching v2 mockup)
-              IconButton(
-                key: const Key('studio_history_button'),
-                tooltip: l10n.scanHistory,
-                visualDensity: VisualDensity.compact,
-                onPressed: _openHistorySheet,
-                icon: Icon(
-                  Icons.more_horiz_rounded,
-                  color: isDark ? Colors.white70 : const Color(0xFF42366E),
-                ),
-              ),
-            ],
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          height: AppTheme.textCardHeight,
+          decoration: BoxDecoration(
+            color: AppTheme.surface(isDark),
+            borderRadius: BorderRadius.circular(AppTheme.textCardRadius),
+            border: Border.all(color: AppTheme.border(isDark)),
           ),
-          // Smart Entity Chips (Phone / Email / URL / Amount / Date) + Multi-Page Batch & Clean Text
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _textController,
-            builder: (context, value, _) {
-              final entities = SmartEntityService.detectEntities(value.text);
-              return Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    ActionChip(
-                      key: const Key('batch_scan_button'),
-                      avatar: const Icon(
-                        Icons.collections_bookmark_rounded,
-                        size: 15,
-                        color: AppTheme.royalViolet,
-                      ),
-                      label: const Text(
-                        'Batch Scan',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: _handleBatchGalleryScan,
-                    ),
-                    if (value.text.trim().isNotEmpty)
-                      ActionChip(
-                        key: const Key('smart_clean_text_chip'),
-                        avatar: const Icon(
-                          Icons.auto_fix_normal_rounded,
-                          size: 15,
-                          color: AppTheme.galleryTealEnd,
-                        ),
-                        label: const Text(
-                          'Clean Text',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        onPressed: _handleCleanText,
-                      ),
-                    ...entities.take(5).map((entity) {
-                      return ActionChip(
-                        key: Key('entity_chip_${entity.value}'),
-                        avatar: Icon(
-                          entity.kind.icon,
-                          size: 14,
-                          color: entity.kind.color,
-                        ),
-                        label: Text(
-                          entity.value,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => _copyTextValue(entity.value),
-                      );
-                    }),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 10),
-          // Text card: 260dp tall, radius 16dp; editable, scrollable multiline TextField
-          // Keeps touch scrolling for itself inside the scrollable body (Spec §2.1)
-          Listener(
+          child: Listener(
             onPointerDown: (_) {
               if (!_textBoxPointerActive) {
                 setState(() => _textBoxPointerActive = true);
@@ -993,184 +706,139 @@ class HomeScreenState extends State<HomeScreen> {
                 setState(() => _textBoxPointerActive = false);
               }
             },
-            child: Card(
-              key: const Key('extracted_text_card'),
-              elevation: 1,
-              margin: EdgeInsets.zero,
-              color: innerFieldBg,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.textCardRadius),
-                side: BorderSide(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.10)
-                      : const Color(0xFFDAD0F2),
+            child: Scrollbar(
+              controller: _textScrollController,
+              thumbVisibility: true,
+              child: TextField(
+                key: const Key('extracted_text_field'),
+                controller: _textController,
+                scrollController: _textScrollController,
+                focusNode: _textFocusNode,
+                scrollPhysics: const ClampingScrollPhysics(),
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.45,
+                  color: AppTheme.text(isDark),
                 ),
-              ),
-              child: SizedBox(
-                height: AppTheme.textCardHeight,
-                child: Scrollbar(
-                  controller: _textScrollController,
-                  thumbVisibility: true,
-                  child: TextField(
-                    key: const Key('extracted_text_field'),
-                    controller: _textController,
-                    scrollController: _textScrollController,
-                    focusNode: _textFocusNode,
-                    scrollPhysics: const ClampingScrollPhysics(),
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    maxLines: null,
-                    expands: true,
-                    textAlignVertical: TextAlignVertical.top,
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.45,
-                      color: isDark ? Colors.white : const Color(0xFF1C1338),
-                    ),
-                    decoration: InputDecoration(
-                      hintText: l10n.extractedTextHint,
-                      hintStyle: TextStyle(
-                        fontSize: 16,
-                        color: isDark ? Colors.white38 : Colors.black38,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(14),
-                    ),
+                decoration: InputDecoration(
+                  hintText: l10n.extractedTextHint,
+                  hintStyle: TextStyle(
+                    fontSize: 15,
+                    color: AppTheme.textMuted(isDark),
                   ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(14),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          // Row 3: Copy & Share equal-width buttons
-          Row(
-            children: [
-              Expanded(
-                child: SmartPillButton(
-                  key: const Key('copy_button'),
-                  label: l10n.copy,
-                  icon: Icons.copy_rounded,
-                  gradientColors: const [
-                    AppTheme.copyPurpleStart,
-                    AppTheme.copyPurpleEnd,
-                  ],
-                  onPressed: _handleCopy,
-                ),
+        ),
+        // Entity chips + Clean Text, only once there is text to act on.
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _textController,
+          builder: (context, value, _) {
+            final entities = SmartEntityService.detectEntities(value.text);
+            if (value.text.trim().isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  ActionChip(
+                    key: const Key('smart_clean_text_chip'),
+                    avatar: Icon(
+                      Icons.auto_fix_normal_rounded,
+                      size: 15,
+                      color: AppTheme.accentText(isDark),
+                    ),
+                    label: const Text('Clean text'),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: _handleCleanText,
+                  ),
+                  ...entities.take(4).map((entity) {
+                    return ActionChip(
+                      key: Key('entity_chip_${entity.value}'),
+                      avatar: Icon(
+                        entity.kind.icon,
+                        size: 14,
+                        color: AppTheme.textMuted(isDark),
+                      ),
+                      label: Text(entity.value),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _copyTextValue(entity.value),
+                    );
+                  }),
+                ],
               ),
-              const SizedBox(width: AppTheme.buttonGap),
-              Expanded(
-                child: SmartPillButton(
-                  key: const Key('share_button'),
-                  label: l10n.share,
-                  icon: Icons.share_rounded,
-                  gradientColors: const [
-                    AppTheme.shareTealStart,
-                    AppTheme.shareTealEnd,
-                  ],
-                  onPressed: _handleShare,
-                ),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: SecondaryActionButton(
+                key: const Key('copy_button'),
+                label: l10n.copy,
+                icon: Icons.copy_rounded,
+                onPressed: _handleCopy,
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Full-width outlined Clear button (Spec §2.1 + warm orange accent from v2 mockup)
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: OutlinedButton.icon(
+            ),
+            const SizedBox(width: AppTheme.buttonGap),
+            Expanded(
+              child: SecondaryActionButton(
+                key: const Key('share_button'),
+                label: l10n.share,
+                icon: Icons.share_rounded,
+                onPressed: _handleShare,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        // Batch scan and Clear are occasional, so they sit as quiet text
+        // buttons instead of competing with the four actions above.
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton.icon(
+              key: const Key('batch_scan_button'),
+              onPressed: _handleBatchGalleryScan,
+              icon: const Icon(Icons.collections_bookmark_rounded, size: 17),
+              label: const Text('Batch scan'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.textMuted(isDark),
+              ),
+            ),
+            const SizedBox(width: 4),
+            TextButton.icon(
               key: const Key('clear_button'),
               onPressed: _handleClear,
-              icon: const Icon(Icons.delete_sweep_rounded, size: 20),
-              label: Text(
-                l10n.clear,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.clearOrangeEnd,
-                side: const BorderSide(
-                  color: AppTheme.clearOrangeEnd,
-                  width: 1.6,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-                ),
+              icon: const Icon(Icons.delete_outline_rounded, size: 17),
+              label: Text(l10n.clear),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.textMuted(isDark),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
-          // Footer copyright 15sp bold centred
-          Text(
-            AppStrings.footerCopyright,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white70 : const Color(0xFF42366E),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Bottom navigation bar matching the selected v2 UI design mockup
-  /// (Home / History / Settings).
-  Widget _buildMockupBottomNavBar(bool isDark, AppLocalizations l10n) {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? const [Color(0xFF1F1147), Color(0xFF34186B)]
-              : const [Color(0xFF311B92), Color(0xFF512DA8)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+          ],
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          IconButton(
-            key: const Key('bottom_nav_home'),
-            tooltip: l10n.homeTab,
-            onPressed: () {
-              _outerScrollController.animateTo(
-                0,
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(
-              Icons.home_rounded,
-              color: Colors.white,
-              size: 24,
-            ),
+        const SizedBox(height: 12),
+        Text(
+          AppStrings.footerCopyright,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppTheme.textMuted(isDark),
           ),
-          IconButton(
-            key: const Key('bottom_nav_history'),
-            tooltip: l10n.scanHistory,
-            onPressed: _openHistorySheet,
-            icon: Icon(
-              Icons.history_rounded,
-              color: Colors.white.withValues(alpha: 0.85),
-              size: 24,
-            ),
-          ),
-          IconButton(
-            key: const Key('bottom_nav_settings'),
-            tooltip: l10n.settings,
-            onPressed: widget.onOpenSettings,
-            icon: Icon(
-              Icons.person_outline_rounded,
-              color: Colors.white.withValues(alpha: 0.85),
-              size: 24,
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }

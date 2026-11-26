@@ -83,7 +83,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
       key: const Key('scan_history_sheet'),
       height: MediaQuery.sizeOf(context).height * 0.76,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF170E36) : const Color(0xFFF6F3FC),
+        color: AppTheme.bg(isDark),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
@@ -104,13 +104,13 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.royalViolet.withValues(alpha: 0.16),
+                    color: AppTheme.accent.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.history_rounded,
                     color:
-                        isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
+                        AppTheme.accentText(isDark),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -120,7 +120,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : const Color(0xFF1A103D),
+                      color: AppTheme.text(isDark),
                     ),
                   ),
                 ),
@@ -131,12 +131,12 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                     icon: const Icon(
                       Icons.delete_sweep_rounded,
                       size: 18,
-                      color: AppTheme.clearOrangeEnd,
+                      color: AppTheme.danger,
                     ),
                     label: Text(
                       l10n.clear,
                       style: const TextStyle(
-                        color: AppTheme.clearOrangeEnd,
+                        color: AppTheme.danger,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -175,7 +175,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                         )
                       : null,
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF21164B) : Colors.white,
+                  fillColor: AppTheme.surface(isDark),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   border: OutlineInputBorder(
@@ -238,7 +238,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1A103D),
+                color: AppTheme.text(isDark),
               ),
             ),
           ],
@@ -258,12 +258,12 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
       key: Key('history_item_$index'),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF21164B) : Colors.white,
+        color: AppTheme.surface(isDark),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFFE2DAF5),
+              : AppTheme.border(isDark),
         ),
       ),
       child: Column(
@@ -274,7 +274,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppTheme.royalViolet.withValues(alpha: 0.15),
+                  color: AppTheme.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -283,7 +283,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     color:
-                        isDark ? const Color(0xFFB388FF) : AppTheme.royalViolet,
+                        AppTheme.accentText(isDark),
                   ),
                 ),
               ),
@@ -295,7 +295,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                 icon: const Icon(
                   Icons.delete_outline_rounded,
                   size: 19,
-                  color: AppTheme.clearOrangeEnd,
+                  color: AppTheme.danger,
                 ),
               ),
             ],
@@ -308,7 +308,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
             style: TextStyle(
               fontSize: 14.5,
               height: 1.4,
-              color: isDark ? Colors.white : const Color(0xFF1C1338),
+              color: AppTheme.text(isDark),
             ),
           ),
           const SizedBox(height: 10),
@@ -324,7 +324,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                   icon: const Icon(Icons.edit_note_rounded, size: 18),
                   label: Text(l10n.useText),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.royalViolet,
+                    backgroundColor: AppTheme.accent,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
