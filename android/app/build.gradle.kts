@@ -60,6 +60,26 @@ android {
     }
 }
 
+dependencies {
+    // google_mlkit_text_recognition declares the four non-Latin scripts as
+    // `compileOnly`, so they are on the compile classpath but never packaged
+    // into the APK -- the host app has to bring them in itself. Without these
+    // the first recogniser (latin, which the plugin does ship) succeeds and the
+    // second one dies at runtime with:
+    //
+    //   NoClassDefFoundError: Failed resolution of:
+    //     Lcom/google/mlkit/vision/text/chinese/ChineseTextRecognizerOptions$Builder;
+    //
+    // OcrService runs all five scripts, so all four have to be here. These are
+    // the bundled-model artifacts (models ship inside the APK, no Play Services
+    // download); swap to the com.google.android.gms play-services-mlkit-*
+    // variants only if APK size becomes a problem.
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-devanagari:16.0.1")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
