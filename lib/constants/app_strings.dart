@@ -51,6 +51,9 @@ class AppStrings {
   static const String extractText = 'Extract Text';
   static const String extractedText = 'Extracted Text';
   static const String extractedTextHint = 'Extracted text will appear here...';
+  static const String emptyTextTitle = 'Ready for your first scan?';
+  static const String emptyTextHint =
+      'Your editable text will appear here after a scan.';
   static const String copy = 'Copy';
   static const String share = 'Share';
   static const String clear = 'Clear';
@@ -85,6 +88,9 @@ class AppStrings {
   static const String back = 'Back';
   static const String ok = 'OK';
   static const String cancel = 'Cancel';
+  static const String exitTitle = 'Exit SnapText OCR?';
+  static const String exitMessage = 'Are you sure you want to exit the app?';
+  static const String exit = 'Exit';
 
   // Exact Toast Messages Contract (per Spec §2.4 — case & punctuation sensitive)
   static const String toastCameraPermissionRequired =

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -73,6 +74,7 @@ class HomeScreenState extends State<HomeScreen> {
   Uint8List? _selectedBitmapBytes;
   bool _isExtracting = false;
   bool _textBoxPointerActive = false;
+  bool _isExitDialogOpen = false;
 
   /// Which destination of the shell is showing. The extracted text lives on its
   /// own tab, so a successful extract jumps the user there.
@@ -94,6 +96,11 @@ class HomeScreenState extends State<HomeScreen> {
     super.initState();
     _selectedImagePath = widget.initialImagePath;
     _selectedBitmapBytes = widget.initialBitmapBytes;
+    _textFocusNode.addListener(_handleTextFocusChanged);
+  }
+
+  void _handleTextFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -101,6 +108,7 @@ class HomeScreenState extends State<HomeScreen> {
     _textController.dispose();
     _outerScrollController.dispose();
     _textScrollController.dispose();
+    _textFocusNode.removeListener(_handleTextFocusChanged);
     _textFocusNode.dispose();
     super.dispose();
   }
@@ -111,6 +119,7 @@ class HomeScreenState extends State<HomeScreen> {
       _selectedImagePath = path;
       _selectedBitmapBytes = null;
       _textController.clear();
+      _tab = AppTab.scan;
     });
   }
 
@@ -380,26 +389,67 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _handleSystemBack() async {
+    if (_tab != AppTab.scan) {
+      setState(() => _tab = AppTab.scan);
+      return;
+    }
+    if (_isExitDialogOpen) return;
+
+    _isExitDialogOpen = true;
+    try {
+      final l10n = AppLocalizations.of(context);
+      final shouldExit = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.exitTitle),
+          content: Text(l10n.exitMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.exit),
+            ),
+          ],
+        ),
+      );
+      if (shouldExit == true && mounted) {
+        await SystemNavigator.pop();
+      }
+    } finally {
+      _isExitDialogOpen = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Expanded(
-              // Only the selected tab is built. History re-reads its store on
-              // mount, which is exactly what we want after a new scan lands.
-              child: _buildTabBody(context, isDark, l10n, _tab),
-            ),
-            AppTabBar(
-              current: _tab,
-              onSelect: (tab) => setState(() => _tab = tab),
-            ),
-          ],
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_handleSystemBack());
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Expanded(
+                // Only the selected tab is built. History re-reads its store on
+                // mount, which is exactly what we want after a new scan lands.
+                child: _buildTabBody(context, isDark, l10n, _tab),
+              ),
+              AppTabBar(
+                current: _tab,
+                onSelect: (tab) => setState(() => _tab = tab),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -684,60 +734,170 @@ class HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           StaggeredReveal(
             index: 1,
-            child: Container(
-              height: MediaQuery.sizeOf(context).height * 0.44,
-              decoration: BoxDecoration(
-                color: AppTheme.surface(isDark),
-                borderRadius: BorderRadius.circular(AppTheme.textCardRadius),
-                border: Border.all(color: AppTheme.border(isDark)),
-              ),
-              child: Listener(
-                onPointerDown: (_) {
-                  if (!_textBoxPointerActive) {
-                    setState(() => _textBoxPointerActive = true);
-                  }
-                },
-                onPointerUp: (_) {
-                  if (_textBoxPointerActive) {
-                    setState(() => _textBoxPointerActive = false);
-                  }
-                },
-                onPointerCancel: (_) {
-                  if (_textBoxPointerActive) {
-                    setState(() => _textBoxPointerActive = false);
-                  }
-                },
-                child: Scrollbar(
-                  controller: _textScrollController,
-                  thumbVisibility: true,
-                  child: TextField(
-                    key: const Key('extracted_text_field'),
-                    controller: _textController,
-                    scrollController: _textScrollController,
-                    focusNode: _textFocusNode,
-                    scrollPhysics: const ClampingScrollPhysics(),
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    maxLines: null,
-                    expands: true,
-                    textAlignVertical: TextAlignVertical.top,
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.5,
-                      color: AppTheme.text(isDark),
-                    ),
-                    decoration: InputDecoration(
-                      hintText: l10n.extractedTextHint,
-                      hintStyle: TextStyle(
-                        fontSize: 15,
-                        color: AppTheme.textMuted(isDark),
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _textController,
+              builder: (context, value, _) {
+                final hasText = value.text.trim().isNotEmpty;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AnimatedContainer(
+                      key: const Key('text_editor_card'),
+                      duration: const Duration(milliseconds: 180),
+                      height: hasText
+                          ? MediaQuery.sizeOf(context).height * 0.44
+                          : AppTheme.textCardHeight,
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface(isDark),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.textCardRadius),
+                        border: Border.all(color: AppTheme.border(isDark)),
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(16),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Listener(
+                              onPointerDown: (_) {
+                                if (!_textBoxPointerActive) {
+                                  setState(() => _textBoxPointerActive = true);
+                                }
+                              },
+                              onPointerUp: (_) {
+                                if (_textBoxPointerActive) {
+                                  setState(() => _textBoxPointerActive = false);
+                                }
+                              },
+                              onPointerCancel: (_) {
+                                if (_textBoxPointerActive) {
+                                  setState(() => _textBoxPointerActive = false);
+                                }
+                              },
+                              child: Scrollbar(
+                                controller: _textScrollController,
+                                thumbVisibility: true,
+                                child: TextField(
+                                  key: const Key('extracted_text_field'),
+                                  controller: _textController,
+                                  scrollController: _textScrollController,
+                                  focusNode: _textFocusNode,
+                                  scrollPhysics: const ClampingScrollPhysics(),
+                                  keyboardType: TextInputType.multiline,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  maxLines: null,
+                                  expands: true,
+                                  textAlignVertical: hasText
+                                      ? TextAlignVertical.top
+                                      : TextAlignVertical.center,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    height: 1.5,
+                                    color: AppTheme.text(isDark),
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: hasText || _textFocusNode.hasFocus
+                                        ? l10n.extractedTextHint
+                                        : null,
+                                    hintStyle: TextStyle(
+                                      fontSize: 15,
+                                      color: AppTheme.textMuted(isDark),
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.all(16),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (!hasText && !_textFocusNode.hasFocus)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.accentSoft,
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                          child: Icon(
+                                            Icons.document_scanner_outlined,
+                                            size: 27,
+                                            color: AppTheme.accentText(isDark),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          l10n.emptyTextTitle,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.text(isDark),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          l10n.emptyTextHint,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            color: AppTheme.textMuted(isDark),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
+                    if (!hasText) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.chooseImageHint,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textMuted(isDark),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: PrimaryActionButton(
+                              key: const Key('empty_camera_button'),
+                              label: l10n.camera,
+                              icon: Icons.camera_alt_rounded,
+                              onPressed: _handleCamera,
+                            ),
+                          ),
+                          const SizedBox(width: AppTheme.buttonGap),
+                          Expanded(
+                            child: SecondaryActionButton(
+                              key: const Key('empty_gallery_button'),
+                              label: l10n.gallery,
+                              icon: Icons.photo_library_rounded,
+                              onPressed: _handleGallery,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
           ValueListenableBuilder<TextEditingValue>(
@@ -745,16 +905,7 @@ class HomeScreenState extends State<HomeScreen> {
             builder: (context, value, _) {
               final entities = SmartEntityService.detectEntities(value.text);
               if (value.text.trim().isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: Text(
-                    'Nothing yet — scan or import a document to fill this in.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textMuted(isDark),
-                    ),
-                  ),
-                );
+                return const SizedBox.shrink();
               }
               return Padding(
                 padding: const EdgeInsets.only(top: 10),
@@ -792,44 +943,54 @@ class HomeScreenState extends State<HomeScreen> {
             },
           ),
           const SizedBox(height: 14),
-          StaggeredReveal(
-            index: 2,
-            child: Row(
-              children: [
-                Expanded(
-                  child: PrimaryActionButton(
-                    key: const Key('copy_button'),
-                    label: l10n.copy,
-                    icon: Icons.copy_rounded,
-                    onPressed: _handleCopy,
-                  ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _textController,
+            builder: (context, value, _) {
+              final hasText = value.text.trim().isNotEmpty;
+              return StaggeredReveal(
+                index: 2,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: PrimaryActionButton(
+                        key: const Key('copy_button'),
+                        label: l10n.copy,
+                        icon: Icons.copy_rounded,
+                        onPressed: _handleCopy,
+                        enabled: hasText,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.buttonGap),
+                    Expanded(
+                      child: SecondaryActionButton(
+                        key: const Key('share_button'),
+                        label: l10n.share,
+                        icon: Icons.share_rounded,
+                        onPressed: hasText ? _handleShare : null,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppTheme.buttonGap),
-                Expanded(
-                  child: SecondaryActionButton(
-                    key: const Key('share_button'),
-                    label: l10n.share,
-                    icon: Icons.share_rounded,
-                    onPressed: _handleShare,
+              );
+            },
+          ),
+          const SizedBox(height: 4),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _textController,
+            builder: (context, value, _) => Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  key: const Key('clear_button'),
+                  onPressed: value.text.trim().isNotEmpty ? _handleClear : null,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 17),
+                  label: Text(l10n.clear),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.textMuted(isDark),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                key: const Key('clear_button'),
-                onPressed: _handleClear,
-                icon: const Icon(Icons.delete_outline_rounded, size: 17),
-                label: Text(l10n.clear),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.textMuted(isDark),
-                ),
-              ),
-            ],
           ),
           const SizedBox(height: 6),
           Text(

@@ -39,6 +39,8 @@ class AppLocalizations {
   String get extractedText => _t('extractedText', AppStrings.extractedText);
   String get extractedTextHint =>
       _t('extractedTextHint', AppStrings.extractedTextHint);
+  String get emptyTextTitle => _t('emptyTextTitle', AppStrings.emptyTextTitle);
+  String get emptyTextHint => _t('emptyTextHint', AppStrings.emptyTextHint);
   String get copy => _t('copy', AppStrings.copy);
   String get share => _t('share', AppStrings.share);
   String get clear => _t('clear', AppStrings.clear);
@@ -69,6 +71,9 @@ class AppLocalizations {
   String get back => _t('back', AppStrings.back);
   String get ok => _t('ok', AppStrings.ok);
   String get cancel => _t('cancel', AppStrings.cancel);
+  String get exitTitle => _t('exitTitle', AppStrings.exitTitle);
+  String get exitMessage => _t('exitMessage', AppStrings.exitMessage);
+  String get exit => _t('exit', AppStrings.exit);
   String get scanHistory => _t('scanHistory', 'Scan History');
   String get noHistoryYet => _t('noHistoryYet', 'No scan history yet');
   String get useText => _t('useText', 'Use Text');
@@ -90,6 +95,8 @@ class AppLocalizations {
       'extractText': AppStrings.extractText,
       'extractedText': AppStrings.extractedText,
       'extractedTextHint': AppStrings.extractedTextHint,
+      'emptyTextTitle': AppStrings.emptyTextTitle,
+      'emptyTextHint': AppStrings.emptyTextHint,
       'copy': AppStrings.copy,
       'share': AppStrings.share,
       'clear': AppStrings.clear,
@@ -115,6 +122,9 @@ class AppLocalizations {
       'back': AppStrings.back,
       'ok': AppStrings.ok,
       'cancel': AppStrings.cancel,
+      'exitTitle': AppStrings.exitTitle,
+      'exitMessage': AppStrings.exitMessage,
+      'exit': AppStrings.exit,
       'scanHistory': 'Scan History',
       'noHistoryYet': 'No scan history yet',
       'useText': 'Use Text',
@@ -134,6 +144,8 @@ class AppLocalizations {
       'extractText': 'টেক্সট বের করুন',
       'extractedText': 'প্রাপ্ত টেক্সট',
       'extractedTextHint': 'ছবি থেকে প্রাপ্ত টেক্সট এখানে দেখা যাবে...',
+      'emptyTextTitle': 'আপনার প্রথম স্ক্যানের জন্য প্রস্তুত?',
+      'emptyTextHint': 'স্ক্যানের পর আপনার সম্পাদনাযোগ্য টেক্সট এখানে আসবে।',
       'copy': 'কপি',
       'share': 'শেয়ার',
       'clear': 'মুছে ফেলুন',
@@ -159,6 +171,9 @@ class AppLocalizations {
       'back': 'ফিরে যান',
       'ok': 'ঠিক আছে',
       'cancel': 'বাতিল',
+      'exitTitle': 'অ্যাপ থেকে বের হবেন?',
+      'exitMessage': 'আপনি কি SnapText OCR বন্ধ করতে চান?',
+      'exit': 'বের হন',
       'scanHistory': 'স্ক্যান হিস্ট্রি',
       'noHistoryYet': 'এখনও কোনো স্ক্যান হিস্ট্রি নেই',
       'useText': 'ব্যবহার করুন',

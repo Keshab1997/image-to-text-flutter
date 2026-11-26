@@ -134,9 +134,32 @@ void main() {
       expect(find.text('Share'), findsOneWidget);
       expect(find.text('Clear'), findsOneWidget);
       expect(find.text('© 2026 Keshab Studios'), findsOneWidget);
+      expect(find.byKey(const Key('empty_camera_button')), findsOneWidget);
+      expect(find.byKey(const Key('empty_gallery_button')), findsOneWidget);
+      expect(tester.getSize(find.byKey(const Key('text_editor_card'))).height,
+          lessThan(300));
     });
 
-    testWidgets('shows exact guard toasts when no image or no text exists',
+    testWidgets('system back returns to Scan, then asks before exit',
+        (tester) async {
+      await tester.pumpWidget(const SnapTextApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('tab_text')));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('empty_image_state')), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Exit SnapText OCR?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Exit SnapText OCR?'), findsNothing);
+    });
+
+    testWidgets('shows guard toasts and disables actions when text is empty',
         (tester) async {
       await tester.pumpWidget(const SnapTextApp());
       await tester.pumpAndSettle();
@@ -160,23 +183,22 @@ void main() {
       await tester.tap(find.byKey(const Key('tab_text')));
       await tester.pumpAndSettle();
 
-      // 3. Copy with blank text -> "There is no text to copy"
-      await tester.ensureVisible(find.byKey(const Key('copy_button')));
-      await tester.tap(find.byKey(const Key('copy_button')));
-      await tester.pump();
-      expect(find.text('There is no text to copy'), findsOneWidget);
-
-      // 4. Share with blank text -> "There is no text to share"
-      await tester.ensureVisible(find.byKey(const Key('share_button')));
-      await tester.tap(find.byKey(const Key('share_button')));
-      await tester.pump();
-      expect(find.text('There is no text to share'), findsOneWidget);
-
-      // 5. Clear -> "Cleared"
-      await tester.ensureVisible(find.byKey(const Key('clear_button')));
-      await tester.tap(find.byKey(const Key('clear_button')));
-      await tester.pump();
-      expect(find.text('Cleared'), findsOneWidget);
+      // Empty results cannot be copied, shared, or cleared.
+      final copyButton = tester.widget<FilledButton>(find.descendant(
+        of: find.byKey(const Key('copy_button')),
+        matching: find.byType(FilledButton),
+      ));
+      expect(copyButton.onPressed, isNull);
+      final shareButton = tester.widget<OutlinedButton>(find.descendant(
+        of: find.byKey(const Key('share_button')),
+        matching: find.byType(OutlinedButton),
+      ));
+      expect(shareButton.onPressed, isNull);
+      expect(
+          tester
+              .widget<TextButton>(find.byKey(const Key('clear_button')))
+              .onPressed,
+          isNull);
     });
   });
 
