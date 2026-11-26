@@ -14,7 +14,7 @@ SnapText OCR does not require an account and is not connected to an operator-run
 ## Information the app handles
 
 - **Images you choose or capture:** The app uses the Android image picker and camera permission when you take a photo. The selected image is processed on your device for text recognition and cropping. Temporary image files may be created locally while the app works with an image.
-- **Recognized and edited text:** Text is produced on-device using Google ML Kit text recognition and Tesseract OCR (including the bundled Bengali model). You can edit, copy, clear, or share it. The app does not send the image or recognized text to a server operated by Keshab Studios.
+- **Recognized and edited text:** Text is produced on-device using Google ML Kit Text Recognition. The current OCR scripts are Latin, Chinese, Devanagari, Japanese, and Korean; Bengali OCR is not currently supported. You can edit, copy, clear, or share recognized text. The app does not send the image or recognized text to a server operated by Keshab Studios.
 - **Scan history:** Recent non-empty scans may be stored locally on your device. The history is limited to 50 entries; adding a repeated text replaces the older matching entry. You can delete entries or clear the history in the app.
 - **App preferences:** Theme and language choices are stored locally so they can be restored when you reopen the app.
 - **Camera permission:** Android asks for camera access only when you choose the camera feature. You can deny or revoke it in system settings; camera capture will then be unavailable.
@@ -29,7 +29,7 @@ If you email support, Keshab Studios receives the email address and any content 
 
 ## Platform and hosting providers
 
-The app relies on Android and its image picker/camera interfaces, Google ML Kit, and Tesseract. These components may be subject to their respective providers' terms and privacy practices. The app does not control Android or Google Play services' independent technical or diagnostic processing.
+The app relies on Android and its image picker/camera interfaces and Google ML Kit. These components may be subject to their respective providers' terms and privacy practices. The app does not control Android or Google Play services' independent technical or diagnostic processing.
 
 These policy pages are hosted by GitHub Pages. GitHub may process technical information about visits to the policy website under [GitHub's Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement). That website hosting is separate from the OCR app; the app does not embed the policy website as an in-app tracking service.
 

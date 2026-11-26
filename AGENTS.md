@@ -359,7 +359,7 @@ down here is never touched).
   Add new motion behind it.
 - **Runtime dependencies:** `google_mlkit_text_recognition` 0.15.1,
   `image_picker`, `image_cropper`, `permission_handler`, `path_provider`,
-  `share_plus`, `shared_preferences`, `url_launcher`, `intl`, `tesseract_ocr`.
+  `share_plus`, `shared_preferences`, `url_launcher`, `intl`.
 - **Local storage:** scan history in `SharedPreferences` under
   `snaptext_scan_history_v1`, capped at 50 entries
   (`lib/services/history_service.dart`). There is no database and no cloud.

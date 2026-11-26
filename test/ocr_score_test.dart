@@ -67,7 +67,7 @@ void main() {
     });
   });
 
-  group('OcrService — ML Kit scripts plus Bengali Tesseract', () {
+  group('OcrService — 5-script concurrent execution', () {
     test('runs all 5 scripts and ignores individual failures', () async {
       final calledScripts = <TextRecognitionScript>[];
       final service = OcrService(
@@ -96,41 +96,6 @@ void main() {
       expect(calledScripts.length, equals(5));
       // Devanagari 'नमस्ते भारत' scores higher than 'Extracted Latin line'
       expect(best, equals('नमस्ते भारत'));
-    });
-
-    test('prefers Bengali Tesseract output over unsupported-script noise',
-        () async {
-      final service = OcrService(
-        scriptRunner: (script, _) => Future.value(
-          script == TextRecognitionScript.devanagiri ? 'नमस्ते भारत' : '',
-        ),
-        bengaliRunner: (imagePath) async {
-          expect(imagePath, equals('/tmp/bengali-sample.jpg'));
-          return 'বাংলা লেখা';
-        },
-      );
-
-      final best = await service.recognizeBestText(
-        InputImage.fromFilePath('/tmp/bengali-sample.jpg'),
-      );
-
-      expect(best, equals('বাংলা লেখা'));
-    });
-
-    test('keeps the stronger English result over Bengali Tesseract noise',
-        () async {
-      final service = OcrService(
-        scriptRunner: (script, _) async => script == TextRecognitionScript.latin
-            ? 'English OCR should remain readable'
-            : '',
-        bengaliRunner: (_) async => 'বাংলা',
-      );
-
-      final best = await service.recognizeBestText(
-        InputImage.fromFilePath('/tmp/english-sample.jpg'),
-      );
-
-      expect(best, equals('English OCR should remain readable'));
     });
   });
 }

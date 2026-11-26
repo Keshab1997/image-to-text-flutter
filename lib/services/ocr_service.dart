@@ -3,8 +3,6 @@ import 'dart:typed_data';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:tesseract_ocr/ocr_engine_config.dart';
-import 'package:tesseract_ocr/tesseract_ocr.dart';
 
 final RegExp _unicodeLetterOrDigit = RegExp(r'^[\p{L}\p{Nd}]$', unicode: true);
 
@@ -100,21 +98,15 @@ typedef ScriptRecognizerRunner = Future<String> Function(
   InputImage inputImage,
 );
 
-typedef BengaliTesseractRunner = Future<String> Function(String imagePath);
-
-/// On-device OCR: five ML Kit scripts plus Tesseract for Bengali text.
+/// On-device OCR service running all 5 ML Kit scripts concurrently.
 class OcrService {
   OcrService({
     ScriptRecognizerRunner? scriptRunner,
-    BengaliTesseractRunner? bengaliRunner,
     Directory? tempDirectoryOverride,
   })  : _scriptRunner = scriptRunner ?? _defaultScriptRunner,
-        _bengaliRunner = bengaliRunner ??
-            (scriptRunner == null ? _defaultBengaliRunner : _skipBengaliRunner),
         _tempDirectoryOverride = tempDirectoryOverride;
 
   final ScriptRecognizerRunner _scriptRunner;
-  final BengaliTesseractRunner _bengaliRunner;
   final Directory? _tempDirectoryOverride;
 
   /// The exact 5 ML Kit scripts specified in IMPLEMENTATION_SPEC.md §3.
@@ -139,67 +131,22 @@ class OcrService {
     }
   }
 
-  static Future<String> _defaultBengaliRunner(String imagePath) {
-    return TesseractOcr.extractText(
-      imagePath,
-      config: const OCRConfig(
-        language: 'ben',
-        engine: OCREngine.tesseract,
-      ),
-    );
-  }
-
-  static Future<String> _skipBengaliRunner(String _) async => '';
-
-  static final RegExp _bengaliScript = RegExp(r'[\u0980-\u09FF]');
-
-  /// Runs five ML Kit scripts plus on-device Bengali OCR when an image path is
-  /// available. Bengali OCR can correct unsupported-script results, but it
-  /// must not replace a stronger Latin result with a Bengali false positive.
+  /// Runs all five recognisers concurrently, ignoring individual failures,
+  /// and returns the highest-scoring non-empty result.
   Future<String?> recognizeBestText(InputImage inputImage) async {
-    final futures = <Future<String?>>[
-      ...supportedScripts.map((script) async {
-        try {
-          final rawText = await _scriptRunner(script, inputImage);
-          final trimmed = rawText.trim();
-          return trimmed.isNotEmpty ? trimmed : null;
-        } catch (_) {
-          // Individual recogniser failures are ignored per Spec §3.
-          return null;
-        }
-      }),
-    ];
-
-    final imagePath = inputImage.filePath;
-    if (imagePath != null) {
-      futures.add(() async {
-        try {
-          final rawText = await _bengaliRunner(imagePath);
-          final trimmed = rawText.trim();
-          return trimmed.isNotEmpty ? trimmed : null;
-        } catch (_) {
-          // Bengali OCR is optional; preserve the existing recognizers' result.
-          return null;
-        }
-      }());
-    }
+    final futures = supportedScripts.map((script) async {
+      try {
+        final rawText = await _scriptRunner(script, inputImage);
+        final trimmed = rawText.trim();
+        return trimmed.isNotEmpty ? trimmed : null;
+      } catch (_) {
+        // Individual recogniser failures are ignored per Spec §3.
+        return null;
+      }
+    }).toList(growable: false);
 
     final resolved = await Future.wait<String?>(futures);
-    final validResults = resolved.whereType<String>().toList(growable: false);
-    final bengaliResults = validResults
-        .where((result) => _bengaliScript.hasMatch(result))
-        .toList(growable: false);
-    if (bengaliResults.isEmpty) {
-      return selectBestOcrResult(validResults);
-    }
-
-    final bestBengali = selectBestOcrResult(bengaliResults)!;
-    final latinResult = resolved.isEmpty ? null : resolved.first;
-    if (latinResult != null &&
-        calculateOcrScore(latinResult) >= calculateOcrScore(bestBengali)) {
-      return latinResult;
-    }
-    return bestBengali;
+    return selectBestOcrResult(resolved.whereType<String>());
   }
 
   /// Extracts text from an image file path (state `uri`).
