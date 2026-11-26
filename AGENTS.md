@@ -358,15 +358,16 @@ down here is never touched).
   animation hangs `pumpAndSettle`) and honours the OS reduce-motion setting.
   Add new motion behind it.
 - **Runtime dependencies:** `google_mlkit_text_recognition` 0.15.1,
-  `image_picker`, `image_cropper`, `google_mobile_ads`, `permission_handler`,
-  `path_provider`, `share_plus`, `shared_preferences`, `url_launcher`, `intl`.
+  `image_picker`, `image_cropper`, `permission_handler`, `path_provider`,
+  `share_plus`, `shared_preferences`, `url_launcher`, `intl`, `tesseract_ocr`.
 - **Local storage:** scan history in `SharedPreferences` under
   `snaptext_scan_history_v1`, capped at 50 entries
   (`lib/services/history_service.dart`). There is no database and no cloud.
-- **Ads:** **removed from the UI on purpose** (2026-11-26) — `BannerAdSlot` is
-  gone and no screen mounts one. `google_mobile_ads` is still in `pubspec.yaml`
-  and `MobileAds.initialize()` still runs in `main.dart`; drop both if the app
-  is staying ad-free.
+- **Ads:** fully removed on 2026-11-26. The app has no ad UI, AdMob manifest
+  metadata, `google_mobile_ads` dependency, or SDK initialization.
+- **Policies:** English Privacy Policy and Terms & Conditions source live in
+  `docs/legal/`; matching static GitHub Pages documents are in
+  `docs/legal/site/` and are published on the `gh-pages` branch root.
 
 ### The Android trap that has bitten this repo twice
 

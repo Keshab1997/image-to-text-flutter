@@ -355,11 +355,15 @@ void main() {
         (tester) async {
       final prefs = await SharedPreferences.getInstance();
       final prefsService = PreferencesService(prefs);
+      final launchedUris = <Uri>[];
 
       await tester.pumpWidget(
         SnapTextApp(
           preferencesService: prefsService,
-          uriLauncher: (_) async => false,
+          uriLauncher: (uri) async {
+            launchedUris.add(uri);
+            return false;
+          },
         ),
       );
       await tester.pumpAndSettle();
@@ -419,6 +423,18 @@ void main() {
       await tester.tap(find.byKey(const Key('privacy_policy_button')));
       await tester.pumpAndSettle();
       expect(find.text('Unable to open Privacy Policy'), findsOneWidget);
+      expect(launchedUris.last.toString(), equals(AppStrings.privacyPolicyUrl));
+
+      await tester.ensureVisible(
+        find.byKey(const Key('terms_and_conditions_button')),
+      );
+      await tester.tap(find.byKey(const Key('terms_and_conditions_button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Unable to open Terms & Conditions'), findsOneWidget);
+      expect(
+        launchedUris.last.toString(),
+        equals(AppStrings.termsAndConditionsUrl),
+      );
 
       // Content Policy dialog
       await tester.ensureVisible(

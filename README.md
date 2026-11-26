@@ -15,8 +15,8 @@
 - **Full Settings & Customisation**:
   - **Appearance**: Light Mode, Dark Mode, and System Default with `SharedPreferences` persistence.
   - **App Language**: 21 supported locales (`en`, `fr`, `es`, `de`, `pt`, `it`, `ar`, `zh`, `ja`, `ko`, `hi`, `bn`, `ru`, `id`, `ur`, `vi`, `tr`, `rw`, `sw`, `mr`, `te`) in exact specification order.
-  - **Policies & Support**: Privacy Policy link, Content Policy dialog, Contact Us email launcher, and About dialog.
-  - **Lifecycle-Aware AdMob Banner Ads**: Bottom banner slot on both Home and Settings screens using Google's official test IDs during development (see `TODO(release)` markers in `lib/constants/app_strings.dart` and `android/app/src/main/AndroidManifest.xml`).
+  - **Policies & Support**: GitHub Pages-hosted Privacy Policy and Terms & Conditions, Content Policy dialog, Contact Us email launcher, and About dialog.
+  - **Ad-free**: No advertising or analytics SDK is initialized or included in the app.
 
 ---
 
@@ -36,7 +36,7 @@
 
 ```text
 lib/
-  main.dart                    # Entrypoint, AdMob init, persisted theme/locale bootstrap
+  main.dart                    # Entrypoint and persisted theme/locale bootstrap
   app.dart                     # SnapTextApp MaterialApp, 21-locale fallback delegates, navigation
   constants/
     app_strings.dart           # Exact UI copy, toast contract (§2.4), and 21-locale metadata

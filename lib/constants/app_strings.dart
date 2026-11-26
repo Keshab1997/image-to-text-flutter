@@ -24,15 +24,11 @@ class AppStrings {
   static const String supportEmail = 'keshabstudios@gmail.com';
   static const String footerCopyright = '© 2026 Keshab Studios';
 
-  // Privacy Policy URL
+  // Public policy pages hosted from this repository's GitHub Pages site.
   static const String privacyPolicyUrl =
-      'https://sites.google.com/view/privacypolicy-imagetotext/privacy-of-image-to-text';
-
-  // AdMob Official Test IDs (per Spec §6.1)
-  // TODO(release): Replace with Keshab Studios' production AdMob App ID and Banner Unit ID before Play Store release.
-  static const String admobTestAppId = 'ca-app-pub-3940256099942544~3347511713';
-  static const String admobTestBannerUnitId =
-      'ca-app-pub-3940256099942544/6300978111';
+      'https://keshab1997.github.io/image-to-text-flutter/privacy-policy/';
+  static const String termsAndConditionsUrl =
+      'https://keshab1997.github.io/image-to-text-flutter/terms-and-conditions/';
 
   // Home Screen Copy
   static const String mainSubtitle = 'Extract text from your images';
@@ -79,6 +75,7 @@ class AppStrings {
   static const String policiesDescription =
       'Learn about privacy and responsible use';
   static const String privacyPolicy = 'Privacy Policy';
+  static const String termsAndConditions = 'Terms & Conditions';
   static const String contentPolicy = 'Content Policy';
   static const String support = 'Support';
   static const String supportDescription =
@@ -119,6 +116,7 @@ class AppStrings {
   static const String toastDarkModeEnabled = 'Dark mode enabled';
   static const String toastSystemModeEnabled = 'System mode enabled';
   static const String toastPrivacyPolicyError = 'Unable to open Privacy Policy';
+  static const String toastTermsError = 'Unable to open Terms & Conditions';
   static const String toastNoEmailApp = 'No email application found';
 
   // Dialog & Support Texts (per Spec §4)

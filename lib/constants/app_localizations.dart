@@ -62,6 +62,8 @@ class AppLocalizations {
   String get policiesDescription =>
       _t('policiesDescription', AppStrings.policiesDescription);
   String get privacyPolicy => _t('privacyPolicy', AppStrings.privacyPolicy);
+  String get termsAndConditions =>
+      _t('termsAndConditions', AppStrings.termsAndConditions);
   String get contentPolicy => _t('contentPolicy', AppStrings.contentPolicy);
   String get support => _t('support', AppStrings.support);
   String get supportDescription =>
@@ -114,6 +116,7 @@ class AppLocalizations {
       'policies': AppStrings.policies,
       'policiesDescription': AppStrings.policiesDescription,
       'privacyPolicy': AppStrings.privacyPolicy,
+      'termsAndConditions': AppStrings.termsAndConditions,
       'contentPolicy': AppStrings.contentPolicy,
       'support': AppStrings.support,
       'supportDescription': AppStrings.supportDescription,

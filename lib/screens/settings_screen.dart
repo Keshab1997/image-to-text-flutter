@@ -42,18 +42,22 @@ class SettingsScreen extends StatelessWidget {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _openPrivacyPolicy(BuildContext context) async {
-    final uri = Uri.parse(AppStrings.privacyPolicyUrl);
+  Future<void> _openPolicyLink(
+    BuildContext context, {
+    required String url,
+    required String errorMessage,
+  }) async {
+    final uri = Uri.parse(url);
     final launcher = uriLauncher ?? _defaultLaunchUri;
     try {
       final launched = await launcher(uri);
       if (!context.mounted) return;
       if (!launched) {
-        AppToast.showLong(context, AppStrings.toastPrivacyPolicyError);
+        AppToast.showLong(context, errorMessage);
       }
     } catch (_) {
       if (!context.mounted) return;
-      AppToast.showLong(context, AppStrings.toastPrivacyPolicyError);
+      AppToast.showLong(context, errorMessage);
     }
   }
 
@@ -367,7 +371,23 @@ class SettingsScreen extends StatelessWidget {
                           label: l10n.privacyPolicy,
                           icon: Icons.privacy_tip_rounded,
                           isDark: isDark,
-                          onPressed: () => _openPrivacyPolicy(context),
+                          onPressed: () => _openPolicyLink(
+                            context,
+                            url: AppStrings.privacyPolicyUrl,
+                            errorMessage: AppStrings.toastPrivacyPolicyError,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        _buildSettingsButton(
+                          key: const Key('terms_and_conditions_button'),
+                          label: l10n.termsAndConditions,
+                          icon: Icons.description_outlined,
+                          isDark: isDark,
+                          onPressed: () => _openPolicyLink(
+                            context,
+                            url: AppStrings.termsAndConditionsUrl,
+                            errorMessage: AppStrings.toastTermsError,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         _buildSettingsButton(
