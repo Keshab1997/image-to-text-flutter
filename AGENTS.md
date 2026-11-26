@@ -330,56 +330,85 @@ Everything above the end marker is maintained by
 `scripts/install-agent-pack.sh` (re-run the one-liner to update it; your text
 down here is never touched).
 
-- **App:** Khoroch Diary — offline-first personal finance ledger. Local SQLite
-  (Drift) is the source of truth (web: Drift WASM + IndexedDB via
-  `openWebLedger`); Supabase is an opt-in cloud backup (Google sign-in only,
-  RLS), never a dependency of the UI.
-- **App directory:** `.` — Flutter app at the repo root, shipped at v1 with
-  Flutter 3.50.0 / Dart 3.14.0 (`android/`, `ios/`, `web/`).
-- **Spec:** there is no spec contract in this repository. `docs/` was deleted
-  (2026-11-21) after Keshab's cleanup — `docs/spec/` (architecture/data-model/
-  screens/theme/open decisions), `docs/design/` (UI preview + style guide),
-  `docs/agent-briefs/` (past briefs) and the root README.md are all gone.
-  Product truth lives in the code (`lib/`) and in `test/`.
-- **Extra project rules:** money is integer **paise** (INR, Indian grouping),
-  never `double`; IDs are client UUIDs; deletes are tombstones; all colours
-  come from `AppColors` (`lib/core/theme/app_colors.dart`), never literal hex
-  in a feature widget; English + বাংলা via the in-code `AppString` enum
-  (`lib/core/l10n/app_strings.dart`), not `arb` files. Runtime dependencies:
-  drift, drift_flutter, supabase_flutter, shared_preferences, image_picker,
-  uuid — add more with `flutter pub add` only when a feature needs them
-  (`http` is dev-only: MockClient in test/supabase_cloud_backend_test.dart).
-- **Extra verification:** the seeded Home screen shows ₹10,000 income, ₹3,580
-  expense and ₹6,420 remaining (test/home_design_test.dart expects them);
-  `250 × 4 = 1,000` and `₹500 × 10 = ₹5,000` are the calculator/counter smoke
-  cases. 48 Dart test files cover the app (`flutter test` after `flutter
-  pub get`), including `test/local_ledger_migration_test.dart` which upgrades
-  real v1/v2 database files through `onUpgrade`;
-  `tests/test_ledger_schema.py` keeps the ledger DDL honest (65
-  tests, offline, `python3 -m pytest tests/ -q`). Check a UI change with
-  `python3 tool/local_screenshots.py --shot <name>` before asking Keshab to
-  look at it.
-- **Workflows (`.github/workflows/`):** six files; the flutter-builder gates
-  are pinned at `Keshab1997/flutter-builder@v1.18.9`. Automatic PR gate:
-  *PR quick checks — pytest & analyze* (`pr-checks.yml`) runs on
-  `pull_request` (path-filtered) with `pytest tests/` + `flutter analyze`
-  only — no `flutter test`, no builds. Approved manual gates: *Flutter CI —
-  Format, Analyze & Test* (`ci.yml`) and *Flutter widget-test diagnostics*
-  (`widget-tests.yml`). NOT approved, do not run without Keshab: *Web preview*
-  (`web-preview.yml` — push-triggered, visibility is a yes-no for Pages setup),
-  *Manual build* (`manual-build.yml`) and *Publish release*
-  (`publish-release.yml` — tags/releases). Quote the real names, never a
-  generic "Flutter CI".
-- **Android signing:** upload key at `android/app/upload-keystore.jks` (alias
-  `khatabook`, self-signed CN=Keshab Sarkar / O=Keshab Studios, valid to 2054)
-  and `key.properties` at the repo root — both gitignored, never commit. CI
-  receives the same key via secrets `ANDROID_KEYSTORE_BASE64`,
-  `KEYSTORE_PASSWORD`, `KEY_PASSWORD`, `KEY_ALIAS`; release signing in
-  `android/app/build.gradle.kts` falls back to debug when no key.properties
-  exists locally.
-- **Not yet present (needs approval):** Pages setup (`web-preview.yml` is
-  committed but unused), repository secrets beyond the four signing secrets,
-  tags/releases, and any publishing workflow run. Supabase is already
-  configured — URL and **publishable** key in `lib/core/config/cloud_project.dart`
-  (never a service-role key — `test/cloud_project_test.dart` proves it), RLS
-  migrations applied — there is nothing to approve there anymore.
+- **App:** SnapText OCR — offline on-device OCR reader. Pick or capture an
+  image, run Google ML Kit Text Recognition v2, pick the best of five scripts,
+  get editable text.
+- **App directory:** `.` — Flutter app at the repo root in a four-tab shell
+  (`Scan` / `Text` / `History` / `Settings`). Android package
+  `com.keshabstudios.snaptext`, `minSdk` 24.
+- **Product truth:** `README.md`, the code in `lib/` and `test/`. There is
+  **no `docs/`** — `docs/IMPLEMENTATION_SPEC.md` and `IMPLEMENTATION_SPEC.md`
+  are cited in code comments (e.g. "Spec §2.1", "per §6.1") but are no longer
+  in the repo, so treat those section numbers as historical, not authoritative.
+- **Theme:** every colour comes from `AppTheme`
+  (`lib/constants/app_theme.dart`) — one accent, orange `#F97316`, on neutral
+  light/dark greys. Never put a literal hex in a widget; that is exactly how
+  the old look accumulated 64 competing colours. Light + dark both exist and
+  are driven by `PreferencesService`.
+- **Localization:** 21 languages via the in-code `AppStrings` /
+  `AppLocalizations` (`lib/constants/app_strings.dart`,
+  `lib/constants/app_localizations.dart`), **not `arb` files**. `en` is the
+  source of truth; `ban` (বাংলা) is one of the 21.
+- **State:** `HomeScreenState` is the whole app state today (image state, text
+  controller, active tab). The shell's tabs are `AppTab` in
+  `lib/widgets/app_tab_bar.dart`. Only the selected tab is built, which is why
+  History re-reads its store on open.
+- **Motion:** `AppMotion` (`lib/widgets/motion.dart`) gates decorative
+  animation. It is deliberately off under `flutter test` (a perpetual
+  animation hangs `pumpAndSettle`) and honours the OS reduce-motion setting.
+  Add new motion behind it.
+- **Runtime dependencies:** `google_mlkit_text_recognition` 0.15.1,
+  `image_picker`, `image_cropper`, `google_mobile_ads`, `permission_handler`,
+  `path_provider`, `share_plus`, `shared_preferences`, `url_launcher`, `intl`.
+- **Local storage:** scan history in `SharedPreferences` under
+  `snaptext_scan_history_v1`, capped at 50 entries
+  (`lib/services/history_service.dart`). There is no database and no cloud.
+- **Ads:** **removed from the UI on purpose** (2026-11-26) — `BannerAdSlot` is
+  gone and no screen mounts one. `google_mobile_ads` is still in `pubspec.yaml`
+  and `MobileAds.initialize()` still runs in `main.dart`; drop both if the app
+  is staying ad-free.
+
+### The Android trap that has bitten this repo twice
+
+`google_mlkit_text_recognition` declares the four non-Latin scripts as
+**`compileOnly`**, so they never reach the APK. `android/app/build.gradle.kts`
+therefore declares them as `implementation` itself — **do not remove those
+four lines**. Without them only `latin` exists, and because each script pass
+is wrapped in its own `try/catch`, the failure is silent: no crash, and
+Bengali/Hindi/Chinese/Japanese/Korean scan as "no text detected". Verify a
+build by looking *inside* the APK, not by reading Gradle:
+
+```bash
+unzip -l build/app/outputs/flutter-apk/app-release.apk \
+  | grep -c 'mlkit-google-ocr-models/.*/gocr'   # expect > 0 per script
+```
+
+Release builds run R8; `android/app/proguard-rules.pro` also keeps
+`androidx.work`/Room because `google_mobile_ads` pulls in WorkManager, which
+opens a Room database during `androidx.startup` — before the first frame. A
+missing keep there is an instant crash on tap that **debug builds never show**.
+
+- **Verification / tests:** `test/home_screen_test.dart` (flow + toasts,
+  widget keys in `PascalCase`->`Key('snake_case')` form) and
+  `test/ocr_score_test.dart` (the scoring function and 5-script concurrency).
+  Screenshots: `python3 tool/local_screenshots.py --shot home|text|settings`
+  renders from `tool/screenshots/shot_registry.dart` into `.agent-screens/`
+  (git-ignored). Those PNGs come from the **test** renderer, so text renders as
+  grey boxes — judge layout and colour from them, never typography.
+- **Workflows (`.github/workflows/`):** four files, all pinned at
+  `Keshab1997/flutter-builder@v1.18.9`: `ci.yml` (format → analyze → test,
+  manual), `manual-build.yml` (APK/AAB, manual — this is the one that produces
+  installable builds), `publish-release.yml` (signed build → tag → GitHub
+  Release, manual) and `web-preview.yml` (push-triggered Pages preview).
+  There is **no** `pr-checks.yml` and no `widget-tests.yml`.
+- **Android signing:** upload key `android/app/upload-keystore.jks` (alias
+  `khatabook`, self-signed CN=Keshab Sarkar / O=Keshab Studios) plus a
+  `key.properties` beside `android/`; both gitignored — never commit them. CI
+  rebuilds the same key from the secrets `ANDROID_KEYSTORE_BASE64`,
+  `KEYSTORE_PASSWORD`, `KEY_PASSWORD`, `KEY_ALIAS`. With no `key.properties`
+  locally, release signing silently falls back to debug.
+- **Release placeholders still open:** `AndroidManifest.xml` uses the Google
+  **test** AdMob app id (`ca-app-pub-3940256099942544~3347511713`) with a
+  `TODO(release)` — swap it before any Play submission. `assets/images/mascot_hero.png`
+  is no longer referenced by any screen after the UI flattening and can be
+  deleted or reused.
