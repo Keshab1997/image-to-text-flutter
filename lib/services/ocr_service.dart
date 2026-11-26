@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:tesseract_ocr/ocr_engine_config.dart';
+import 'package:tesseract_ocr/tesseract_ocr.dart';
 
 final RegExp _unicodeLetterOrDigit = RegExp(r'^[\p{L}\p{Nd}]$', unicode: true);
 
@@ -98,15 +100,21 @@ typedef ScriptRecognizerRunner = Future<String> Function(
   InputImage inputImage,
 );
 
-/// On-device multilingual OCR service running all 5 ML Kit scripts concurrently.
+typedef BengaliTesseractRunner = Future<String> Function(String imagePath);
+
+/// On-device OCR: five ML Kit scripts plus Tesseract for Bengali text.
 class OcrService {
   OcrService({
     ScriptRecognizerRunner? scriptRunner,
+    BengaliTesseractRunner? bengaliRunner,
     Directory? tempDirectoryOverride,
   })  : _scriptRunner = scriptRunner ?? _defaultScriptRunner,
+        _bengaliRunner = bengaliRunner ??
+            (scriptRunner == null ? _defaultBengaliRunner : _skipBengaliRunner),
         _tempDirectoryOverride = tempDirectoryOverride;
 
   final ScriptRecognizerRunner _scriptRunner;
+  final BengaliTesseractRunner _bengaliRunner;
   final Directory? _tempDirectoryOverride;
 
   /// The exact 5 ML Kit scripts specified in IMPLEMENTATION_SPEC.md §3.
@@ -131,25 +139,59 @@ class OcrService {
     }
   }
 
-  /// Runs all 5 recognisers concurrently on [inputImage], collects non-empty
-  /// trimmed strings in deterministic script order (thread-safe), ignores
-  /// individual script errors, closes every recogniser, and returns the
-  /// highest-scoring result (or `null` if no text was detected).
+  static Future<String> _defaultBengaliRunner(String imagePath) {
+    return TesseractOcr.extractText(
+      imagePath,
+      config: const OCRConfig(
+        language: 'ben',
+        engine: OCREngine.tesseract,
+      ),
+    );
+  }
+
+  static Future<String> _skipBengaliRunner(String _) async => '';
+
+  static final RegExp _bengaliScript = RegExp(r'[\u0980-\u09FF]');
+
+  /// Runs five ML Kit scripts plus on-device Bengali OCR when an image path is
+  /// available. If Bengali characters are found, prefer that result so an
+  /// unrelated Latin-script pass cannot outrank it by length.
   Future<String?> recognizeBestText(InputImage inputImage) async {
-    final futures = supportedScripts.map((script) async {
-      try {
-        final rawText = await _scriptRunner(script, inputImage);
-        final trimmed = rawText.trim();
-        return trimmed.isNotEmpty ? trimmed : null;
-      } catch (_) {
-        // Individual recogniser failures are ignored per Spec §3.
-        return null;
-      }
-    }).toList(growable: false);
+    final futures = <Future<String?>>[
+      ...supportedScripts.map((script) async {
+        try {
+          final rawText = await _scriptRunner(script, inputImage);
+          final trimmed = rawText.trim();
+          return trimmed.isNotEmpty ? trimmed : null;
+        } catch (_) {
+          // Individual recogniser failures are ignored per Spec §3.
+          return null;
+        }
+      }),
+    ];
+
+    final imagePath = inputImage.filePath;
+    if (imagePath != null) {
+      futures.add(() async {
+        try {
+          final rawText = await _bengaliRunner(imagePath);
+          final trimmed = rawText.trim();
+          return trimmed.isNotEmpty ? trimmed : null;
+        } catch (_) {
+          // Bengali OCR is optional; preserve the existing recognizers' result.
+          return null;
+        }
+      }());
+    }
 
     final resolved = await Future.wait<String?>(futures);
     final validResults = resolved.whereType<String>().toList(growable: false);
-    return selectBestOcrResult(validResults);
+    final bengaliResults = validResults
+        .where((result) => _bengaliScript.hasMatch(result))
+        .toList(growable: false);
+    return selectBestOcrResult(
+      bengaliResults.isNotEmpty ? bengaliResults : validResults,
+    );
   }
 
   /// Extracts text from an image file path (state `uri`).

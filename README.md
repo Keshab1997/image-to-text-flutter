@@ -6,7 +6,7 @@
 
 ## Key Features
 
-- **100% On-Device Multilingual OCR**: Runs all **5 Google ML Kit Text Recognition v2 scripts** concurrently (`Latin`, `Chinese`, `Devanagari`, `Japanese`, `Korean`) and selects the optimal result using the deterministic character-weighted scoring algorithm (`calculateOcrScore`).
+- **100% On-Device Multilingual OCR**: Runs all **5 Google ML Kit Text Recognition v2 scripts** concurrently (`Latin`, `Chinese`, `Devanagari`, `Japanese`, `Korean`) and adds Tesseract's bundled `ben.traineddata` model for Bengali. Bengali-script results are preferred over mismatched Latin-script output; all processing remains on-device.
 - **Smart 3D Mascot UI Redesign**:
   - Custom AI-generated 3D Robot-Scholar mascot hero banner (`assets/images/mascot_hero.png`) and circular badge avatar (`assets/images/mascot_avatar.png`).
   - Smart Bento tiles for **Camera** (*Scan Now*) and **Gallery** (*Import Image*).
