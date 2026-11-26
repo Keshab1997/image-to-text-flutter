@@ -484,8 +484,7 @@ class SettingsScreen extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 20,
-                  color:
-                      AppTheme.accentText(isDark),
+                  color: AppTheme.accentText(isDark),
                 ),
               ),
               const SizedBox(width: 10),
@@ -506,8 +505,7 @@ class SettingsScreen extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13.5,
-                        color:
-                            AppTheme.textMuted(isDark),
+                        color: AppTheme.textMuted(isDark),
                       ),
                     ),
                   ],
@@ -583,8 +581,7 @@ class SettingsScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color:
-                        AppTheme.accentText(isDark),
+                    color: AppTheme.accentText(isDark),
                   ),
                 ),
               )

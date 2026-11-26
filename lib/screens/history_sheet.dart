@@ -109,8 +109,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                   ),
                   child: Icon(
                     Icons.history_rounded,
-                    color:
-                        AppTheme.accentText(isDark),
+                    color: AppTheme.accentText(isDark),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -282,8 +281,7 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
-                    color:
-                        AppTheme.accentText(isDark),
+                    color: AppTheme.accentText(isDark),
                   ),
                 ),
               ),

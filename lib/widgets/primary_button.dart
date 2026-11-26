@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 /// The main action on a screen: solid accent fill, one line, full width.
 class PrimaryActionButton extends StatelessWidget {
   const PrimaryActionButton({
@@ -55,4 +54,3 @@ class SecondaryActionButton extends StatelessWidget {
     );
   }
 }
-

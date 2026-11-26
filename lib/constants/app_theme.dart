@@ -172,7 +172,8 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? const Color(0xFF2A2A30) : const Color(0xFF2A2A30),
+        backgroundColor:
+            isDark ? const Color(0xFF2A2A30) : const Color(0xFF2A2A30),
         contentTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 14,
