@@ -102,6 +102,11 @@ void main() {
   group('HomeScreen layout and empty-state guard toasts (Spec §2.1–§2.4)', () {
     testWidgets('renders header, scan tab, tab bar, and no ad slot',
         (tester) async {
+      tester.view.physicalSize = const Size(780, 1688);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(const SnapTextApp());
       await tester.pumpAndSettle();
 
@@ -133,11 +138,25 @@ void main() {
       expect(find.text('Copy'), findsOneWidget);
       expect(find.text('Share'), findsOneWidget);
       expect(find.text('Clear'), findsOneWidget);
-      expect(find.text('© 2026 Keshab Studios'), findsOneWidget);
+      expect(find.text('© 2026 Keshab Studios'), findsNothing);
       expect(find.byKey(const Key('empty_camera_button')), findsOneWidget);
       expect(find.byKey(const Key('empty_gallery_button')), findsOneWidget);
-      expect(tester.getSize(find.byKey(const Key('text_editor_card'))).height,
-          lessThan(300));
+      expect(
+        tester.getSize(find.byKey(const Key('text_editor_card'))).height,
+        greaterThan(350),
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('extracted_text_field')),
+        'Sample extracted text on the full-height editor.',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('© 2026 Keshab Studios'), findsNothing);
+      expect(find.byKey(const Key('empty_camera_button')), findsNothing);
+      expect(
+        tester.getSize(find.byKey(const Key('text_editor_card'))).height,
+        greaterThan(350),
+      );
     });
 
     testWidgets('system back returns to Scan, then asks before exit',
