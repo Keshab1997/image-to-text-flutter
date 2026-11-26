@@ -154,8 +154,8 @@ class OcrService {
   static final RegExp _bengaliScript = RegExp(r'[\u0980-\u09FF]');
 
   /// Runs five ML Kit scripts plus on-device Bengali OCR when an image path is
-  /// available. If Bengali characters are found, prefer that result so an
-  /// unrelated Latin-script pass cannot outrank it by length.
+  /// available. Bengali OCR can correct unsupported-script results, but it
+  /// must not replace a stronger Latin result with a Bengali false positive.
   Future<String?> recognizeBestText(InputImage inputImage) async {
     final futures = <Future<String?>>[
       ...supportedScripts.map((script) async {
@@ -189,9 +189,17 @@ class OcrService {
     final bengaliResults = validResults
         .where((result) => _bengaliScript.hasMatch(result))
         .toList(growable: false);
-    return selectBestOcrResult(
-      bengaliResults.isNotEmpty ? bengaliResults : validResults,
-    );
+    if (bengaliResults.isEmpty) {
+      return selectBestOcrResult(validResults);
+    }
+
+    final bestBengali = selectBestOcrResult(bengaliResults)!;
+    final latinResult = resolved.isEmpty ? null : resolved.first;
+    if (latinResult != null &&
+        calculateOcrScore(latinResult) >= calculateOcrScore(bestBengali)) {
+      return latinResult;
+    }
+    return bestBengali;
   }
 
   /// Extracts text from an image file path (state `uri`).
