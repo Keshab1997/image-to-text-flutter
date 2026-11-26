@@ -327,7 +327,9 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
                 child: ElevatedButton.icon(
                   key: Key('history_use_$index'),
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    if (!widget.embedded) {
+                      Navigator.of(context).pop();
+                    }
                     widget.onSelectText(item.text);
                   },
                   icon: const Icon(Icons.edit_note_rounded, size: 18),

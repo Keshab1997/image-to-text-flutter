@@ -531,6 +531,10 @@ void main() {
         homeState.textController.text,
         equals('Saved History OCR Sample'),
       );
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byKey(const Key('tab_text')), findsOneWidget);
+      expect(find.byKey(const Key('extracted_text_field')), findsOneWidget);
+      expect(find.text('Exit SnapText OCR?'), findsNothing);
     });
 
     testWidgets(
