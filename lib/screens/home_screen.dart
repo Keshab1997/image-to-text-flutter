@@ -12,9 +12,11 @@ import '../services/image_service.dart';
 import '../services/ocr_service.dart';
 import '../services/smart_entity_service.dart';
 import '../widgets/app_toast.dart';
-import '../widgets/banner_ad_widget.dart';
+import '../widgets/app_tab_bar.dart';
+import '../widgets/motion.dart';
 import '../widgets/primary_button.dart';
 import 'history_sheet.dart';
+import 'settings_screen.dart';
 
 typedef ShareTextCallback = Future<void> Function(String text,
     {String? subject});
@@ -35,6 +37,7 @@ class HomeScreen extends StatefulWidget {
     this.historyService,
     this.shareHandler,
     this.clipboardHandler,
+    this.uriLauncher,
     this.initialImageState = ImageSelectionState.none,
     this.initialImagePath,
     this.initialBitmapBytes,
@@ -46,6 +49,7 @@ class HomeScreen extends StatefulWidget {
   final HistoryService? historyService;
   final ShareTextCallback? shareHandler;
   final ClipboardCopyCallback? clipboardHandler;
+  final ExternalUriLauncher? uriLauncher;
   final ImageSelectionState initialImageState;
   final String? initialImagePath;
   final Uint8List? initialBitmapBytes;
@@ -70,11 +74,20 @@ class HomeScreenState extends State<HomeScreen> {
   bool _isExtracting = false;
   bool _textBoxPointerActive = false;
 
+  /// Which destination of the shell is showing. The extracted text lives on its
+  /// own tab, so a successful extract jumps the user there.
+  AppTab _tab = AppTab.scan;
+
   ImageSelectionState get imageState => _imageState;
   String? get selectedImagePath => _selectedImagePath;
   Uint8List? get selectedBitmapBytes => _selectedBitmapBytes;
   TextEditingController get textController => _textController;
   bool get isExtracting => _isExtracting;
+  AppTab get tab => _tab;
+
+  /// Lets the screenshot harness (and tests) land on a specific tab without
+  /// synthesising a tap.
+  void switchTabForShot(AppTab tab) => setState(() => _tab = tab);
 
   @override
   void initState() {
@@ -177,6 +190,7 @@ class HomeScreenState extends State<HomeScreen> {
           score: calculateOcrScore(combinedText),
         );
         if (!mounted) return;
+        setState(() => _tab = AppTab.text);
         AppToast.showShort(context, AppStrings.toastTextExtracted);
       }
     } catch (e) {
@@ -279,6 +293,9 @@ class HomeScreenState extends State<HomeScreen> {
           score: calculateOcrScore(bestText),
         );
         if (!mounted) return;
+        // Extracting only ever happens in order to read the result, so take the
+        // user to it instead of making them find the tab.
+        setState(() => _tab = AppTab.text);
         AppToast.showShort(context, AppStrings.toastTextExtracted);
       }
     } catch (e) {
@@ -340,6 +357,8 @@ class HomeScreenState extends State<HomeScreen> {
     AppToast.showShort(context, AppStrings.toastCleared);
   }
 
+  // Kept for the pushed-route style; the shell now switches tabs instead.
+  // ignore: unused_element
   Future<void> _openHistorySheet() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -368,267 +387,482 @@ class HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            _buildHeader(context, isDark, l10n),
             Expanded(
-              child: SingleChildScrollView(
-                controller: _outerScrollController,
-                physics: _textBoxPointerActive
-                    ? const NeverScrollableScrollPhysics()
-                    : const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(AppTheme.screenPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildImageCard(context, isDark, l10n),
-                    const SizedBox(height: 12),
-                    // Two rows, four actions, one accent. Camera and Extract
-                    // are filled because they are the verbs; Gallery and Crop
-                    // are outlined because they only prepare the input.
-                    Row(
-                      children: [
-                        Expanded(
-                          child: PrimaryActionButton(
-                            key: const Key('camera_button'),
-                            label: l10n.camera,
-                            icon: Icons.camera_alt_rounded,
-                            onPressed: _handleCamera,
-                          ),
-                        ),
-                        const SizedBox(width: AppTheme.buttonGap),
-                        Expanded(
-                          child: SecondaryActionButton(
-                            key: const Key('gallery_button'),
-                            label: l10n.gallery,
-                            icon: Icons.photo_library_rounded,
-                            onPressed: _handleGallery,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppTheme.buttonGap),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SecondaryActionButton(
-                            key: const Key('crop_button'),
-                            label: l10n.crop,
-                            icon: Icons.crop_rounded,
-                            onPressed: _handleCrop,
-                          ),
-                        ),
-                        const SizedBox(width: AppTheme.buttonGap),
-                        Expanded(
-                          child: PrimaryActionButton(
-                            key: const Key('extract_button'),
-                            label: l10n.extractText,
-                            icon: Icons.auto_fix_high_rounded,
-                            onPressed: _handleExtractText,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_isExtracting) ...[
-                      const SizedBox(height: 14),
-                      Row(
-                        key: const Key('ocr_progress_spinner'),
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Extracting text…',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.textMuted(isDark),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 22),
-                    _buildExtractedTextSection(context, isDark, l10n),
-                  ],
-                ),
-              ),
+              // Only the selected tab is built. History re-reads its store on
+              // mount, which is exactly what we want after a new scan lands.
+              child: _buildTabBody(context, isDark, l10n, _tab),
             ),
-            const BannerAdSlot(),
+            AppTabBar(
+              current: _tab,
+              onSelect: (tab) => setState(() => _tab = tab),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Header — title, one line of context, history and settings. No gradient
-  /// banner, no mascot badge competing with the content below it.
-  Widget _buildHeader(
+  Widget _buildTabBody(
     BuildContext context,
     bool isDark,
     AppLocalizations l10n,
+    AppTab tab,
   ) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.screenPadding,
-        10,
-        AppTheme.screenPadding,
-        6,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  AppStrings.appName,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.text(isDark),
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  l10n.mainSubtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.textMuted(isDark),
-                  ),
-                ),
-              ],
-            ),
+    switch (tab) {
+      case AppTab.scan:
+        return _buildScanTab(context, isDark, l10n);
+      case AppTab.text:
+        return _buildTextTab(context, isDark, l10n);
+      case AppTab.history:
+        return Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: ScanHistorySheet(
+            historyService: _historyService,
+            onSelectText: (restoredText) {
+              setState(() {
+                _textController.value = TextEditingValue(
+                  text: restoredText,
+                  selection:
+                      TextSelection.collapsed(offset: restoredText.length),
+                );
+                _tab = AppTab.text;
+              });
+              AppToast.showShort(context, AppStrings.toastTextExtracted);
+            },
+            onCopyText: _copyTextValue,
+            embedded: true,
           ),
-          IconButton(
-            key: const Key('bottom_nav_history'),
-            tooltip: l10n.scanHistory,
-            onPressed: _openHistorySheet,
-            icon: Icon(
-              Icons.history_rounded,
-              color: AppTheme.textMuted(isDark),
-            ),
-          ),
-          IconButton(
-            key: const Key('settings_button'),
-            tooltip: l10n.settings,
-            onPressed: widget.onOpenSettings,
-            icon: Icon(
-              Icons.settings_rounded,
-              color: AppTheme.textMuted(isDark),
-            ),
-          ),
-        ],
-      ),
-    );
+        );
+      case AppTab.settings:
+        return SettingsScreen(
+          embedded: true,
+          currentThemeMode:
+              AppShellTheme.of(context)?.themeMode ?? ThemeMode.system,
+          currentLocale: Localizations.localeOf(context),
+          onThemeModeChanged: (mode) =>
+              AppShellTheme.of(context)?.onThemeModeChanged(mode),
+          onLocaleChanged: (locale) =>
+              AppShellTheme.of(context)?.onLocaleChanged(locale),
+          uriLauncher: widget.uriLauncher,
+          onBack: () => setState(() => _tab = AppTab.scan),
+        );
+    }
   }
 
-  /// The image target. Flat surface, one muted line of copy, and the mascot
-  /// only as a small mark — the previous 300dp illustrated hero pushed the
-  /// actual buttons below the fold on a 390x844 phone.
-  Widget _buildImageCard(
+  // ── Tab 1: Scan ──────────────────────────────────────────────────────────
+
+  Widget _buildScanTab(
     BuildContext context,
     bool isDark,
     AppLocalizations l10n,
   ) {
     final hasImage = _imageState != ImageSelectionState.none;
 
-    return Container(
-      key: const Key('image_card'),
-      height: AppTheme.imageCardHeight,
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppTheme.surface(isDark),
-        borderRadius: BorderRadius.circular(AppTheme.imageCardRadius),
-        border: Border.all(color: AppTheme.border(isDark)),
+    return SingleChildScrollView(
+      controller: _outerScrollController,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          StaggeredReveal(
+            index: 0,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.appName,
+                        style: TextStyle(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                          color: AppTheme.text(isDark),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.mainSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textMuted(isDark),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _GhostCircleButton(
+                  icon: Icons.history_rounded,
+                  tooltip: l10n.scanHistory,
+                  onTap: () => setState(() => _tab = AppTab.history),
+                ),
+                const SizedBox(width: 8),
+                _GhostCircleButton(
+                  key: const Key('settings_button'),
+                  icon: Icons.settings_rounded,
+                  tooltip: l10n.settings,
+                  onTap: () {
+                    setState(() => _tab = AppTab.settings);
+                    widget.onOpenSettings();
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          StaggeredReveal(
+            index: 1,
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.42,
+              child: hasImage
+                  ? _buildSelectedImagePreview(isDark)
+                  : AnimatedScanFrame(
+                      key: const Key('empty_image_state'),
+                      title: l10n.noImageSelected,
+                      caption: l10n.chooseImageHint,
+                      badge: 'AUTO',
+                    ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          StaggeredReveal(
+            index: 2,
+            child: PrimaryActionButton(
+              key: const Key('camera_button'),
+              label: l10n.camera,
+              icon: Icons.camera_alt_rounded,
+              onPressed: _handleCamera,
+            ),
+          ),
+          const SizedBox(height: 10),
+          StaggeredReveal(
+            index: 3,
+            child: SecondaryActionButton(
+              key: const Key('gallery_button'),
+              label: l10n.gallery,
+              icon: Icons.photo_library_rounded,
+              onPressed: _handleGallery,
+            ),
+          ),
+          const SizedBox(height: 6),
+          StaggeredReveal(
+            index: 4,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _QuietTextAction(
+                  key: const Key('batch_scan_button'),
+                  icon: Icons.collections_bookmark_rounded,
+                  label: 'Batch scan',
+                  onTap: _handleBatchGalleryScan,
+                ),
+                _Dot(isDark: isDark),
+                _QuietTextAction(
+                  key: const Key('crop_button'),
+                  icon: Icons.crop_rounded,
+                  label: l10n.crop,
+                  onTap: _handleCrop,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          StaggeredReveal(
+            index: 5,
+            child: Row(
+              children: [
+                Expanded(
+                  child: PrimaryActionButton(
+                    key: const Key('extract_button'),
+                    label: l10n.extractText,
+                    icon: Icons.auto_fix_high_rounded,
+                    onPressed: _handleExtractText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_isExtracting) ..._buildExtractingRow(isDark),
+        ],
       ),
-      child: hasImage
-          ? _buildSelectedImagePreview(isDark)
-          : _buildEmptyState(l10n, isDark),
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations l10n, bool isDark) {
-    return Center(
-      key: const Key('empty_image_state'),
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipOval(
-              child: Image.asset(
-                'assets/images/mascot_avatar.png',
-                width: 44,
-                height: 44,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(
-                  Icons.image_outlined,
-                  size: 30,
-                  color: AppTheme.textMuted(isDark),
+  List<Widget> _buildExtractingRow(bool isDark) {
+    return [
+      const SizedBox(height: 14),
+      Row(
+        key: const Key('ocr_progress_spinner'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Reading 5 scripts…',
+            style: TextStyle(fontSize: 13, color: AppTheme.textMuted(isDark)),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  // ── Tab 2: Text ──────────────────────────────────────────────────────────
+
+  Widget _buildTextTab(
+    BuildContext context,
+    bool isDark,
+    AppLocalizations l10n,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          StaggeredReveal(
+            index: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionEyebrow(label: 'Result'),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.extractedText,
+                        style: TextStyle(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                          color: AppTheme.text(isDark),
+                        ),
+                      ),
+                    ),
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _textController,
+                      builder: (context, value, _) {
+                        final len = value.text.trim().length;
+                        if (len == 0) return const SizedBox.shrink();
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentSoft,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '$len chars',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.accentText(isDark),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          StaggeredReveal(
+            index: 1,
+            child: Container(
+              height: MediaQuery.sizeOf(context).height * 0.44,
+              decoration: BoxDecoration(
+                color: AppTheme.surface(isDark),
+                borderRadius: BorderRadius.circular(AppTheme.textCardRadius),
+                border: Border.all(color: AppTheme.border(isDark)),
+              ),
+              child: Listener(
+                onPointerDown: (_) {
+                  if (!_textBoxPointerActive) {
+                    setState(() => _textBoxPointerActive = true);
+                  }
+                },
+                onPointerUp: (_) {
+                  if (_textBoxPointerActive) {
+                    setState(() => _textBoxPointerActive = false);
+                  }
+                },
+                onPointerCancel: (_) {
+                  if (_textBoxPointerActive) {
+                    setState(() => _textBoxPointerActive = false);
+                  }
+                },
+                child: Scrollbar(
+                  controller: _textScrollController,
+                  thumbVisibility: true,
+                  child: TextField(
+                    key: const Key('extracted_text_field'),
+                    controller: _textController,
+                    scrollController: _textScrollController,
+                    focusNode: _textFocusNode,
+                    scrollPhysics: const ClampingScrollPhysics(),
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.5,
+                      color: AppTheme.text(isDark),
+                    ),
+                    decoration: InputDecoration(
+                      hintText: l10n.extractedTextHint,
+                      hintStyle: TextStyle(
+                        fontSize: 15,
+                        color: AppTheme.textMuted(isDark),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              l10n.noImageSelected,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.text(isDark),
-              ),
+          ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _textController,
+            builder: (context, value, _) {
+              final entities = SmartEntityService.detectEntities(value.text);
+              if (value.text.trim().isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 14),
+                  child: Text(
+                    'Nothing yet — scan or import a document to fill this in.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textMuted(isDark),
+                    ),
+                  ),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ActionChip(
+                      key: const Key('smart_clean_text_chip'),
+                      avatar: Icon(
+                        Icons.auto_fix_normal_rounded,
+                        size: 15,
+                        color: AppTheme.accentText(isDark),
+                      ),
+                      label: const Text('Clean text'),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _handleCleanText,
+                    ),
+                    ...entities.take(4).map((entity) {
+                      return ActionChip(
+                        key: Key('entity_chip_${entity.value}'),
+                        avatar: Icon(
+                          entity.kind.icon,
+                          size: 14,
+                          color: AppTheme.textMuted(isDark),
+                        ),
+                        label: Text(entity.value),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _copyTextValue(entity.value),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+          StaggeredReveal(
+            index: 2,
+            child: Row(
+              children: [
+                Expanded(
+                  child: PrimaryActionButton(
+                    key: const Key('copy_button'),
+                    label: l10n.copy,
+                    icon: Icons.copy_rounded,
+                    onPressed: _handleCopy,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.buttonGap),
+                Expanded(
+                  child: SecondaryActionButton(
+                    key: const Key('share_button'),
+                    label: l10n.share,
+                    icon: Icons.share_rounded,
+                    onPressed: _handleShare,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                l10n.chooseImageHint,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.35,
-                  color: AppTheme.textMuted(isDark),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                key: const Key('clear_button'),
+                onPressed: _handleClear,
+                icon: const Icon(Icons.delete_outline_rounded, size: 17),
+                label: Text(l10n.clear),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.textMuted(isDark),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            AppStrings.footerCopyright,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: AppTheme.textMuted(isDark)),
+          ),
+        ],
       ),
     );
   }
+
+  // ── Shared pieces ────────────────────────────────────────────────────────
 
   Widget _buildSelectedImagePreview(bool isDark) {
-    Widget previewWidget;
+    Widget preview;
     if (_imageState == ImageSelectionState.bitmap &&
         _selectedBitmapBytes != null) {
-      previewWidget = Image.memory(
+      preview = Image.memory(
         _selectedBitmapBytes!,
         key: const Key('image_preview_bitmap'),
         fit: BoxFit.contain,
         width: double.infinity,
-        height: AppTheme.imageCardHeight,
         errorBuilder: (_, __, ___) => const Center(
           child: Icon(Icons.broken_image_rounded, size: 40),
         ),
       );
     } else {
-      previewWidget = Image.file(
+      preview = Image.file(
         File(_selectedImagePath!),
         key: const Key('image_preview_uri'),
         fit: BoxFit.contain,
         width: double.infinity,
-        height: AppTheme.imageCardHeight,
         errorBuilder: (_, __, ___) => const Center(
           child: Icon(Icons.image_outlined, size: 40),
         ),
@@ -637,208 +871,157 @@ class HomeScreenState extends State<HomeScreen> {
 
     return Container(
       key: const Key('image_preview'),
-      color: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
-      child: Center(child: previewWidget),
-    );
-  }
-
-  /// Extracted text: one heading, the field, then the actions that only make
-  /// sense once there is text. Chips stay because they are the fastest way to
-  /// grab an email or amount, but they are muted and only appear when the
-  /// detector actually finds something.
-  Widget _buildExtractedTextSection(
-    BuildContext context,
-    bool isDark,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Text(
-              l10n.extractedText,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.text(isDark),
-              ),
-            ),
-            const Spacer(),
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _textController,
-              builder: (context, value, _) {
-                final len = value.text.trim().length;
-                if (len == 0) return const SizedBox.shrink();
-                return Text(
-                  '$len chars',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textMuted(isDark),
-                  ),
-                );
-              },
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurface : const Color(0xFF111113),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark ? const Color(0xFF35353B) : const Color(0xFFE4E4E7),
         ),
-        const SizedBox(height: 8),
-        Container(
-          height: AppTheme.textCardHeight,
-          decoration: BoxDecoration(
-            color: AppTheme.surface(isDark),
-            borderRadius: BorderRadius.circular(AppTheme.textCardRadius),
-            border: Border.all(color: AppTheme.border(isDark)),
-          ),
-          child: Listener(
-            onPointerDown: (_) {
-              if (!_textBoxPointerActive) {
-                setState(() => _textBoxPointerActive = true);
-              }
-            },
-            onPointerUp: (_) {
-              if (_textBoxPointerActive) {
-                setState(() => _textBoxPointerActive = false);
-              }
-            },
-            onPointerCancel: (_) {
-              if (_textBoxPointerActive) {
-                setState(() => _textBoxPointerActive = false);
-              }
-            },
-            child: Scrollbar(
-              controller: _textScrollController,
-              thumbVisibility: true,
-              child: TextField(
-                key: const Key('extracted_text_field'),
-                controller: _textController,
-                scrollController: _textScrollController,
-                focusNode: _textFocusNode,
-                scrollPhysics: const ClampingScrollPhysics(),
-                keyboardType: TextInputType.multiline,
-                textCapitalization: TextCapitalization.sentences,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                style: TextStyle(
-                  fontSize: 15,
-                  height: 1.45,
-                  color: AppTheme.text(isDark),
-                ),
-                decoration: InputDecoration(
-                  hintText: l10n.extractedTextHint,
-                  hintStyle: TextStyle(
-                    fontSize: 15,
-                    color: AppTheme.textMuted(isDark),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(14),
-                ),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(child: Center(child: preview)),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-          ),
-        ),
-        // Entity chips + Clean Text, only once there is text to act on.
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _textController,
-          builder: (context, value, _) {
-            final entities = SmartEntityService.detectEntities(value.text);
-            if (value.text.trim().isEmpty) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  ActionChip(
-                    key: const Key('smart_clean_text_chip'),
-                    avatar: Icon(
-                      Icons.auto_fix_normal_rounded,
-                      size: 15,
-                      color: AppTheme.accentText(isDark),
-                    ),
-                    label: const Text('Clean text'),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: _handleCleanText,
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 13,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  ...entities.take(4).map((entity) {
-                    return ActionChip(
-                      key: Key('entity_chip_${entity.value}'),
-                      avatar: Icon(
-                        entity.kind.icon,
-                        size: 14,
-                        color: AppTheme.textMuted(isDark),
-                      ),
-                      label: Text(entity.value),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => _copyTextValue(entity.value),
-                    );
-                  }),
+                  const SizedBox(width: 5),
+                  Text(
+                    _imageState == ImageSelectionState.bitmap
+                        ? 'Cropped'
+                        : 'Ready',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: SecondaryActionButton(
-                key: const Key('copy_button'),
-                label: l10n.copy,
-                icon: Icons.copy_rounded,
-                onPressed: _handleCopy,
-              ),
             ),
-            const SizedBox(width: AppTheme.buttonGap),
-            Expanded(
-              child: SecondaryActionButton(
-                key: const Key('share_button'),
-                label: l10n.share,
-                icon: Icons.share_rounded,
-                onPressed: _handleShare,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        // Batch scan and Clear are occasional, so they sit as quiet text
-        // buttons instead of competing with the four actions above.
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton.icon(
-              key: const Key('batch_scan_button'),
-              onPressed: _handleBatchGalleryScan,
-              icon: const Icon(Icons.collections_bookmark_rounded, size: 17),
-              label: const Text('Batch scan'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.textMuted(isDark),
-              ),
-            ),
-            const SizedBox(width: 4),
-            TextButton.icon(
-              key: const Key('clear_button'),
-              onPressed: _handleClear,
-              icon: const Icon(Icons.delete_outline_rounded, size: 17),
-              label: Text(l10n.clear),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.textMuted(isDark),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          AppStrings.footerCopyright,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12,
-            color: AppTheme.textMuted(isDark),
           ),
-        ),
-        const SizedBox(height: 8),
-      ],
+        ],
+      ),
     );
   }
+}
+
+/// Circular ghost icon button used in headers.
+class _GhostCircleButton extends StatelessWidget {
+  const _GhostCircleButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.border(isDark)),
+            ),
+            child: Icon(icon, size: 19, color: AppTheme.textMuted(isDark)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Low-emphasis icon+label pair, e.g. "Batch scan".
+class _QuietTextAction extends StatelessWidget {
+  const _QuietTextAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: AppTheme.textMuted(isDark)),
+      label: Text(label),
+      style: TextButton.styleFrom(
+        foregroundColor: AppTheme.textMuted(isDark),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        minimumSize: const Size(0, 40),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '·',
+      style: TextStyle(color: AppTheme.textMuted(isDark), fontSize: 13),
+    );
+  }
+}
+
+/// Bridges the shell's theme state down to the tabs that change it, so a tab
+/// can switch dark mode without a Navigator push.
+class AppShellTheme extends InheritedWidget {
+  const AppShellTheme({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    required this.onLocaleChanged,
+    required super.child,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final ValueChanged<Locale> onLocaleChanged;
+
+  static AppShellTheme? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppShellTheme>();
+
+  @override
+  bool updateShouldNotify(AppShellTheme oldWidget) =>
+      oldWidget.themeMode != themeMode;
 }

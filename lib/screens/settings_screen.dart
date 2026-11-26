@@ -5,7 +5,6 @@ import '../constants/app_localizations.dart';
 import '../constants/app_strings.dart';
 import '../constants/app_theme.dart';
 import '../widgets/app_toast.dart';
-import '../widgets/banner_ad_widget.dart';
 
 typedef ExternalUriLauncher = Future<bool> Function(Uri uri);
 
@@ -20,6 +19,8 @@ class SettingsScreen extends StatelessWidget {
     required this.currentLocale,
     required this.onThemeModeChanged,
     required this.onLocaleChanged,
+    this.embedded = false,
+    this.onBack,
     this.uriLauncher,
   });
 
@@ -28,6 +29,14 @@ class SettingsScreen extends StatelessWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final ValueChanged<Locale> onLocaleChanged;
   final ExternalUriLauncher? uriLauncher;
+
+  /// True when this screen is a tab of the shell rather than a pushed route:
+  /// the shell already draws the app bar and the back affordance would be a lie.
+  final bool embedded;
+
+  /// When embedded, the compact header's back affordance returns to the scan
+  /// tab. Null falls back to popping the route.
+  final VoidCallback? onBack;
 
   static Future<bool> _defaultLaunchUri(Uri uri) async {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -218,14 +227,60 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildSettingsHeader(context, isDark, l10n),
-            const Divider(height: 1),
+            if (!embedded) ...[
+              _buildSettingsHeader(context, isDark, l10n),
+              const Divider(height: 1),
+            ],
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppTheme.screenPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (embedded) ...[
+                      Row(
+                        children: [
+                          IconButton(
+                            key: const Key('back_button'),
+                            onPressed:
+                                onBack ?? () => Navigator.maybePop(context),
+                            icon: Icon(
+                              Icons.arrow_back_rounded,
+                              color: AppTheme.text(isDark),
+                            ),
+                            tooltip: l10n.settings,
+                          ),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  l10n.settings,
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.4,
+                                    color: AppTheme.text(isDark),
+                                  ),
+                                ),
+                                Text(
+                                  l10n.settingsSubtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppTheme.textMuted(isDark),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                     // Group 1: Appearance
                     _buildSectionCard(
                       isDark: isDark,
@@ -391,7 +446,6 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const BannerAdSlot(),
           ],
         ),
       ),

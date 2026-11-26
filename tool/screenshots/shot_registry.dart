@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:snaptext_ocr/constants/app_strings.dart';
 import 'package:snaptext_ocr/constants/app_theme.dart';
 import 'package:snaptext_ocr/screens/home_screen.dart';
+import 'package:snaptext_ocr/widgets/app_tab_bar.dart';
 import 'package:snaptext_ocr/screens/settings_screen.dart';
 
 import 'dart:io';
@@ -38,6 +39,35 @@ final ShotEnv env = ShotEnv(
   ),
 );
 
+/// Home shell, parked on the Text tab. The framework photographs whatever the
+/// widget ends up showing, so a one-line state poke is enough.
+class _TextTabScreen extends StatefulWidget {
+  const _TextTabScreen();
+
+  @override
+  State<_TextTabScreen> createState() => _TextTabScreenState();
+}
+
+class _TextTabScreenState extends State<_TextTabScreen> {
+  final GlobalKey<HomeScreenState> _key = GlobalKey<HomeScreenState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Switching tab is a state detail of the shell, so poke it the way a tap
+      // would: through the public state object the app already exposes.
+      _key.currentState?.switchTabForShot(AppTab.text);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => HomeScreen(
+        key: _key,
+        onOpenSettings: () {},
+      );
+}
+
 final List<Shot> shots = <Shot>[
   Shot(
     name: 'home',
@@ -48,6 +78,12 @@ final List<Shot> shots = <Shot>[
     name: 'home_dark',
     build: () => HomeScreen(onOpenSettings: () {}),
     dark: true,
+  ),
+  Shot(
+    name: 'text',
+    // Open the Text tab before the camera runs so it gets photographed too.
+    build: () => _TextTabScreen(),
+    dark: false,
   ),
   Shot(
     name: 'settings',

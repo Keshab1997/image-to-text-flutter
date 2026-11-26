@@ -100,8 +100,7 @@ void main() {
   });
 
   group('HomeScreen layout and empty-state guard toasts (Spec §2.1–§2.4)', () {
-    testWidgets(
-        'renders header, empty mascot card, buttons, footer, and banner ad',
+    testWidgets('renders header, scan tab, tab bar, and no ad slot',
         (tester) async {
       await tester.pumpWidget(const SnapTextApp());
       await tester.pumpAndSettle();
@@ -118,12 +117,23 @@ void main() {
       expect(find.text('Gallery'), findsOneWidget);
       expect(find.text('Crop'), findsOneWidget);
       expect(find.text('Extract Text'), findsOneWidget);
+
+      // The shell: four tabs, nothing hidden behind a menu.
+      for (final tab in ['scan', 'text', 'history', 'settings']) {
+        expect(find.byKey(Key('tab_$tab')), findsOneWidget);
+      }
+
+      // The ad slot is gone for good.
+      expect(find.byKey(const Key('banner_ad_container')), findsNothing);
+
+      // Result and its actions live on the Text tab, not the scan screen.
+      await tester.tap(find.byKey(const Key('tab_text')));
+      await tester.pumpAndSettle();
       expect(find.text('Extracted Text'), findsOneWidget);
       expect(find.text('Copy'), findsOneWidget);
       expect(find.text('Share'), findsOneWidget);
       expect(find.text('Clear'), findsOneWidget);
       expect(find.text('© 2026 Keshab Studios'), findsOneWidget);
-      expect(find.byKey(const Key('banner_ad_container')), findsOneWidget);
     });
 
     testWidgets('shows exact guard toasts when no image or no text exists',
@@ -145,6 +155,10 @@ void main() {
       await tester.tap(find.byKey(const Key('extract_button')));
       await tester.pump();
       expect(find.text('Please choose an image first'), findsOneWidget);
+
+      // The result actions live on the Text tab now.
+      await tester.tap(find.byKey(const Key('tab_text')));
+      await tester.pumpAndSettle();
 
       // 3. Copy with blank text -> "There is no text to copy"
       await tester.ensureVisible(find.byKey(const Key('copy_button')));
@@ -309,13 +323,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Open Settings
+      // Open Settings — now a tab of the shell rather than a pushed route.
       await tester.tap(find.byKey(const Key('settings_button')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Settings'), findsOneWidget);
+      // 'Settings' is both the page heading and a tab label.
+      expect(find.text('Settings'), findsWidgets);
+      expect(find.byKey(const Key('dark_mode_button')), findsOneWidget);
       expect(find.text('Customize Image to Text'), findsOneWidget);
-      expect(find.byKey(const Key('banner_ad_container')), findsOneWidget);
+      // Still no advertising anywhere in the app.
+      expect(find.byKey(const Key('banner_ad_container')), findsNothing);
 
       // Theme buttons
       await tester.tap(find.byKey(const Key('dark_mode_button')));
@@ -327,6 +344,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Light mode enabled'), findsOneWidget);
       expect(await prefsService.loadThemeMode(), equals(ThemeMode.light));
+
+      // About the App dialog (asserted before switching to French, because the
+      // dialog copy is localized and these strings are the English ones).
+      await tester.ensureVisible(find.byKey(const Key('about_app_button')));
+      await tester.tap(find.byKey(const Key('about_app_button')));
+      await tester.pumpAndSettle();
+      expect(find.text('About Image to Text'), findsOneWidget);
+      expect(find.textContaining('FEATURES'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('about_ok_button')));
+      await tester.pumpAndSettle();
 
       // Language dialog lists all 21 languages in order
       expect(AppStrings.supportedLanguages.length, equals(21));
@@ -371,18 +398,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('No email application found'), findsOneWidget);
 
-      // About the App dialog
-      await tester.ensureVisible(find.byKey(const Key('about_app_button')));
-      await tester.tap(find.byKey(const Key('about_app_button')));
+      // Leaving Settings is a tab switch back to Scan (no pushed route now).
+      ScaffoldMessenger.of(tester.element(find.byType(HomeScreen)))
+          .removeCurrentSnackBar();
       await tester.pumpAndSettle();
-      expect(find.text('About Image to Text'), findsOneWidget);
-      expect(find.textContaining('FEATURES'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('about_ok_button')));
-      await tester.pumpAndSettle();
-
-      // Back button returns to Home
-      await tester.ensureVisible(find.byKey(const Key('back_button')));
-      await tester.tap(find.byKey(const Key('back_button')));
+      await tester.tap(find.byKey(const Key('tab_scan')));
       await tester.pumpAndSettle();
       expect(find.text('SnapText OCR'), findsOneWidget);
       // Since French ('fr') was selected, Home labels now render in French!
@@ -436,8 +456,13 @@ void main() {
       final homeState = tester.state<HomeScreenState>(find.byType(HomeScreen));
       expect(homeState.textController.text, isEmpty);
 
-      // 3. Open Scan History sheet via bottom nav History button
-      await tester.tap(find.byKey(const Key('bottom_nav_history')));
+      // 3. Open Scan History. Drop the floating toast first: it overlaps the
+      // tab bar and would swallow the tap.
+      ScaffoldMessenger.of(
+        tester.element(find.byType(HomeScreen)),
+      ).removeCurrentSnackBar();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tab_history')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('scan_history_sheet')), findsOneWidget);
       expect(find.text('Saved History OCR Sample'), findsOneWidget);
@@ -508,8 +533,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(copiedValue, equals('support@keshab.dev'));
 
-      // 3. Open History sheet and filter via Search Bar
-      await tester.tap(find.byKey(const Key('bottom_nav_history')));
+      // 3. Open History and filter via Search Bar. Clear the copy toast first:
+      // it floats over the tab bar and would swallow the tap.
+      ScaffoldMessenger.of(
+        tester.element(find.byType(HomeScreen)),
+      ).removeCurrentSnackBar();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tab_history')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('history_search_field')), findsOneWidget);
       await tester.enterText(

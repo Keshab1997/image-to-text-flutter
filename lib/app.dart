@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'constants/app_strings.dart';
 import 'constants/app_theme.dart';
 import 'screens/home_screen.dart';
-import 'screens/settings_screen.dart';
+import 'screens/settings_screen.dart' show ExternalUriLauncher;
 import 'services/history_service.dart';
 import 'services/image_service.dart';
 import 'services/ocr_service.dart';
@@ -128,27 +128,26 @@ class SnapTextAppState extends State<SnapTextApp> {
         }
         return const Locale('en');
       },
+      // The tab shell owns theme/locale changes, so every tab can switch them
+      // in place. Settings is both a tab and reachable as a pushed page.
       home: Builder(
         builder: (navContext) {
-          return HomeScreen(
-            imageService: widget.imageService,
-            ocrService: widget.ocrService,
-            historyService: widget.historyService,
-            shareHandler: widget.shareHandler,
-            clipboardHandler: widget.clipboardHandler,
-            onOpenSettings: () {
-              Navigator.of(navContext).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => SettingsScreen(
-                    currentThemeMode: _themeMode,
-                    currentLocale: _locale,
-                    onThemeModeChanged: updateThemeMode,
-                    onLocaleChanged: updateLocale,
-                    uriLauncher: widget.uriLauncher,
-                  ),
-                ),
-              );
-            },
+          return AppShellTheme(
+            themeMode: _themeMode,
+            onThemeModeChanged: updateThemeMode,
+            onLocaleChanged: updateLocale,
+            child: HomeScreen(
+              imageService: widget.imageService,
+              ocrService: widget.ocrService,
+              historyService: widget.historyService,
+              shareHandler: widget.shareHandler,
+              clipboardHandler: widget.clipboardHandler,
+              uriLauncher: widget.uriLauncher,
+              onOpenSettings: () {
+                // Already reachable as the Settings tab; keeping a pushed route
+                // as well would give two ways to the same place.
+              },
+            ),
           );
         },
       ),

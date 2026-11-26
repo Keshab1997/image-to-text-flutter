@@ -12,11 +12,15 @@ class ScanHistorySheet extends StatefulWidget {
     required this.historyService,
     required this.onSelectText,
     required this.onCopyText,
+    this.embedded = false,
   });
 
   final HistoryService historyService;
   final ValueChanged<String> onSelectText;
   final ValueChanged<String> onCopyText;
+
+  /// True when hosted as a shell tab: full height, no sheet grab handle.
+  final bool embedded;
 
   @override
   State<ScanHistorySheet> createState() => _ScanHistorySheetState();
@@ -81,22 +85,29 @@ class _ScanHistorySheetState extends State<ScanHistorySheet> {
 
     return Container(
       key: const Key('scan_history_sheet'),
-      height: MediaQuery.sizeOf(context).height * 0.76,
+      height: widget.embedded
+          ? double.infinity
+          : MediaQuery.sizeOf(context).height * 0.76,
       decoration: BoxDecoration(
         color: AppTheme.bg(isDark),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: widget.embedded
+            ? null
+            : const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
         children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 44,
-            height: 5,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white24 : Colors.black26,
-              borderRadius: BorderRadius.circular(10),
+          if (!widget.embedded) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black26,
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
+          ] else
+            const SizedBox(height: 6),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 16, 10),
             child: Row(
